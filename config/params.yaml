@@ -1,0 +1,28 @@
+# vision_grasp 参数配置
+camera_node:
+  ros__parameters:
+    use_camera: false      # true=真实摄像头, false=仿真
+    camera_id: 0
+    fps: 30.0
+    width: 640
+    height: 480
+
+vision_node:
+  ros__parameters:
+    min_area: 500
+    erode_iter: 1
+    dilate_iter: 1
+
+ik_solver_node:
+  ros__parameters:
+    urdf_file: ''
+    base_link: 'Base'
+    tip_link: 'zhua'
+
+arm_driver_node:
+  ros__parameters:
+    use_serial: false      # true=连接真实舵机
+    serial_port: '/dev/ttyUSB0'
+    baudrate: 1000000
+    gripper_open_angle: 45.0
+    gripper_close_angle: -30.0

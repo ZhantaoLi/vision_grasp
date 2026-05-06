@@ -1,0 +1,74 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Topic:
+        Value: /robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Links:
+        All Links Enabled: true
+      Alpha: 1.0
+      Value: RobotModel
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Update Interval: 0
+      Value: TF
+    - Class: rviz_default_plugins/Image
+      Name: CameraImage
+      Enabled: true
+      Image Topic:
+        Value: /debug_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Value: CameraImage
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Frame Count: 1
+    Frame Rate: 30
+    Fixed Frame: Base
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/FocusCamera
+  Value: root
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 1.2
+      Focal Point:
+        X: 0.15
+        Y: 0
+        Z: 0.2
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.01
+      Pitch: 0.5
+      Target Frame: ""
+      Yaw: 3.14
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 800
+  Width: 1200

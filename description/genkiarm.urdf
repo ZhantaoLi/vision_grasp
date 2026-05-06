@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="genkiarm">
+
+  <!-- Base Link: 底座 -->
+  <link name="Base">
+    <visual>
+      <geometry>
+        <cylinder radius="0.04" length="0.0265"/>
+      </geometry>
+      <material name="base_mat">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- yao: 腰部旋转 -->
+  <link name="yao">
+    <visual>
+      <geometry>
+        <box size="0.081 0.03 0.03"/>
+      </geometry>
+      <origin xyz="0.0405 0 0"/>
+      <material name="yao_mat">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- jian1: 肩部1 -->
+  <link name="jian1">
+    <visual>
+      <geometry>
+        <cylinder radius="0.015" length="0.118"/>
+      </geometry>
+      <origin xyz="0 0 0.059"/>
+      <material name="jian1_mat">
+        <color rgba="0.2 0.6 0.8 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- jian2: 肩部2 -->
+  <link name="jian2">
+    <visual>
+      <geometry>
+        <cylinder radius="0.015" length="0.118"/>
+      </geometry>
+      <origin xyz="0 0 0.059"/>
+      <material name="jian2_mat">
+        <color rgba="0.2 0.8 0.4 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- wan: 腕部1 -->
+  <link name="wan">
+    <visual>
+      <geometry>
+        <cylinder radius="0.012" length="0.0635"/>
+      </geometry>
+      <origin xyz="0 0 0.03175"/>
+      <material name="wan_mat">
+        <color rgba="0.8 0.6 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- wan2: 腕部2 -->
+  <link name="wan2">
+    <visual>
+      <geometry>
+        <box size="0.025 0.0264 0.042"/>
+      </geometry>
+      <origin xyz="0 -0.0066 0.0105"/>
+      <material name="wan2_mat">
+        <color rgba="0.6 0.2 0.8 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- zhua: 抓手 (末端执行器) -->
+  <link name="zhua">
+    <visual>
+      <geometry>
+        <box size="0.04 0.01 0.02"/>
+      </geometry>
+      <origin xyz="0 0 0.01"/>
+      <material name="zhua_mat">
+        <color rgba="0.9 0.9 0.9 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Joint: Base → yao (腰部旋转) -->
+  <joint name="Rotation" type="revolute">
+    <parent link="Base"/>
+    <child link="yao"/>
+    <origin xyz="-0.013 0 0.0265" rpy="0 -1.57 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.57" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+  <!-- Joint: yao → jian1 (肩部1) -->
+  <joint name="Rotation2" type="revolute">
+    <parent link="yao"/>
+    <child link="jian1"/>
+    <origin xyz="0.081 0 0.0" rpy="0 1.57 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+  <!-- Joint: jian1 → jian2 (肩部2) -->
+  <joint name="Rotation3" type="revolute">
+    <parent link="jian1"/>
+    <child link="jian2"/>
+    <origin xyz="0 0 0.118" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+  <!-- Joint: jian2 → wan (腕部1) -->
+  <joint name="Rotation4" type="revolute">
+    <parent link="jian2"/>
+    <child link="wan"/>
+    <origin xyz="0 0 0.118" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+  <!-- Joint: wan → wan2 (腕部2) -->
+  <joint name="Rotation5" type="revolute">
+    <parent link="wan"/>
+    <child link="wan2"/>
+    <origin xyz="0 0 0.0635" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+  <!-- Joint: wan2 → zhua (抓手开合) -->
+  <joint name="Rotation6" type="revolute">
+    <parent link="wan2"/>
+    <child link="zhua"/>
+    <origin xyz="0 -0.0132 0.021" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="1.57" effort="35" velocity="1"/>
+  </joint>
+
+</robot>
