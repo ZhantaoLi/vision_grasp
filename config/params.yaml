@@ -16,8 +16,8 @@ vision_node:
 ik_solver_node:
   ros__parameters:
     urdf_file: ''
-    base_link: 'Base'
-    tip_link: 'zhua'
+    base_link: 'base_link'
+    tip_link: 'link6'
 
 arm_driver_node:
   ros__parameters:
@@ -26,3 +26,9 @@ arm_driver_node:
     baudrate: 1000000
     gripper_open_angle: 45.0
     gripper_close_angle: -30.0
+
+trajectory_node:
+  ros__parameters:
+    move_duration: 3.0     # 运动时长 (秒)
+    publish_rate: 20.0     # 发布频率 (Hz)
+    test_mode: false       # true=循环演示各关节, false=等待 IK 目标

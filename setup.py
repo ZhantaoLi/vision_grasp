@@ -12,6 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/description', glob('description/*.urdf')),
+        ('share/' + package_name + '/description/meshes', glob('description/meshes/*.STL')),
         ('share/' + package_name + '/config', glob('config/*.yaml') + glob('config/*.rviz')),
     ],
     install_requires=['setuptools'],
@@ -28,6 +29,7 @@ setup(
             'tf_transformer_node = vision_grasp.tf_transformer_node:main',
             'ik_solver_node = vision_grasp.ik_solver_node:main',
             'arm_driver_node = vision_grasp.arm_driver_node:main',
+            'trajectory_node = vision_grasp.trajectory_node:main',
         ],
     },
 )

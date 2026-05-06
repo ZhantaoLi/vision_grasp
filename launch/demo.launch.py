@@ -10,7 +10,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('vision_grasp')
-    urdf_path = os.path.join(pkg_share, 'description', 'genkiarm.urdf')
+    urdf_path = os.path.join(pkg_share, 'description', 'piper.urdf')
     config_path = os.path.join(pkg_share, 'config', 'params.yaml')
 
     with open(urdf_path, 'r') as f:
@@ -53,6 +53,14 @@ def generate_launch_description():
             package='vision_grasp',
             executable='ik_solver_node',
             name='ik_solver_node',
+            parameters=[config_path],
+            output='screen',
+        ),
+
+        Node(
+            package='vision_grasp',
+            executable='trajectory_node',
+            name='trajectory_node',
             parameters=[config_path],
             output='screen',
         ),

@@ -12,8 +12,8 @@ from sensor_msgs.msg import JointState
 
 
 SERVO_MAP = {
-    'Rotation': 1, 'Rotation2': 2, 'Rotation3': 3,
-    'Rotation4': 4, 'Rotation5': 5, 'Rotation6': 6,
+    'joint1': 1, 'joint2': 2, 'joint3': 3,
+    'joint4': 4, 'joint5': 5, 'joint6': 6,
 }
 
  

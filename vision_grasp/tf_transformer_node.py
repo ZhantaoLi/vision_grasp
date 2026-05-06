@@ -6,6 +6,7 @@
 """
 
 import math
+import time
 
 import numpy as np
 import rclpy
@@ -28,26 +29,31 @@ class TfTransformerNode(Node):
     ])
 
     OBJECT_SIZES = {
-        'red_block': 0.03,
-        'green_block': 0.03,
-        'blue_block': 0.025,
-        'yellow_block': 0.028,
+        'red_block': 0.035,
+        'green_block': 0.035,
+        'blue_block': 0.030,
+        'yellow_block': 0.032,
     }
 
     def __init__(self):
         super().__init__('tf_transformer_node')
+        self.declare_parameter('target_interval', 10.0)
+        self.target_interval = self.get_parameter('target_interval').value
+        self._last_target_time = 0.0
+
         self.tf_broadcaster = StaticTransformBroadcaster(self)
         self._broadcast_static_tf()
 
         self.sub_det = self.create_subscription(
             PoseStamped, '/detected_objects', self._det_cb, 10)
         self.pub_target = self.create_publisher(PoseStamped, '/grasp_target', 10)
-        self.get_logger().info('坐标转换节点已启动')
+        self.get_logger().info(
+            f'坐标转换节点已启动 (目标间隔 {self.target_interval}s)')
 
     def _broadcast_static_tf(self):
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = 'Base'
+        t.header.frame_id = 'base_link'
         t.child_frame_id = 'camera_link'
         t.transform.translation.x = self.CAM_POS[0]
         t.transform.translation.y = self.CAM_POS[1]
@@ -71,6 +77,11 @@ class TfTransformerNode(Node):
         return self.CAM_R @ p_cam + self.CAM_POS
 
     def _det_cb(self, msg: PoseStamped):
+        now = time.monotonic()
+        if now - self._last_target_time < self.target_interval:
+            return
+        self._last_target_time = now
+
         obj_type = msg.header.frame_id  # 物体类型
         u = msg.pose.position.x
         v = msg.pose.position.y
@@ -86,7 +97,7 @@ class TfTransformerNode(Node):
 
         target = PoseStamped()
         target.header.stamp = self.get_clock().now().to_msg()
-        target.header.frame_id = 'Base'
+        target.header.frame_id = 'base_link'
         target.pose.position.x = float(p_base[0])
         target.pose.position.y = float(p_base[1])
         target.pose.position.z = float(max(p_base[2], 0.0) + 0.05)

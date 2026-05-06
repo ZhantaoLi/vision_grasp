@@ -41,10 +41,10 @@ class CameraNode(Node):
 
         # 仿真场景中的方块 (frame, x_m, y_m, size_m, bgr_color)
         self.blocks = [
-            ('red_block', 0.12, 0.06, 0.03, (0, 0, 200)),
-            ('green_block', 0.06, -0.08, 0.03, (0, 180, 0)),
-            ('blue_block', 0.18, -0.04, 0.025, (200, 100, 0)),
-            ('yellow_block', 0.10, 0.10, 0.028, (0, 200, 220)),
+            ('red_block', 0.30, 0.15, 0.035, (0, 0, 200)),
+            ('green_block', 0.00, -0.18, 0.035, (0, 180, 0)),
+            ('blue_block', 0.35, -0.12, 0.030, (200, 100, 0)),
+            ('yellow_block', 0.05, 0.20, 0.032, (0, 200, 220)),
         ]
 
         self.pub_image = self.create_publisher(Image, '/image_raw', 10)

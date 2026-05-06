@@ -51,11 +51,18 @@ def _parse_urdf_joints(urdf_path):
         axis = [0.0, 0.0, 1.0]
         if ax_el is not None and ax_el.get('xyz'):
             axis = [float(v) for v in ax_el.get('xyz').split()]
+        limit = None
+        lim_el = j.find('limit')
+        if lim_el is not None:
+            limit = {
+                'lower': float(lim_el.get('lower', '0')),
+                'upper': float(lim_el.get('upper', '0')),
+            }
         joints[name] = {
             'parent': j.find('parent').get('link'),
             'child': j.find('child').get('link'),
             'type': j.get('type', 'fixed'),
-            'xyz': xyz, 'rpy': rpy, 'axis': axis,
+            'xyz': xyz, 'rpy': rpy, 'axis': axis, 'limit': limit,
         }
     return joints
 
@@ -87,7 +94,7 @@ def _fk(q, chain):
     return T
 
 
-def _ik_position(target_pos, chain, q_init=None, max_iter=500, tol=1e-4):
+def _ik_position(target_pos, chain, chain_limits=None, q_init=None, max_iter=500, tol=1e-4):
     n = len(chain)
     q = np.array(q_init if q_init is not None else [0.0] * n)
 
@@ -107,28 +114,39 @@ def _ik_position(target_pos, chain, q_init=None, max_iter=500, tol=1e-4):
 
         dq = J.T @ np.linalg.solve(J @ J.T + 0.01**2 * np.eye(3), err)
         q += dq
-        q = np.clip(q, -1.57, 1.57)
+        if chain_limits is not None:
+            lo = np.array([lim[0] for lim in chain_limits])
+            hi = np.array([lim[1] for lim in chain_limits])
+            q = np.clip(q, lo, hi)
+        else:
+            q = np.clip(q, -3.14, 3.14)
 
     T = _fk(q, chain)
     return q, np.linalg.norm(target_pos - T[:3, 3]) < tol * 5
 
 
 class IKSolverNode(Node):
-    JOINT_NAMES = ['Rotation', 'Rotation2', 'Rotation3',
-                   'Rotation4', 'Rotation5', 'Rotation6']
+    JOINT_NAMES = ['joint1', 'joint2', 'joint3',
+                   'joint4', 'joint5', 'joint6']
+    GRIPPER_JOINTS = ['joint7', 'joint8']
+    JOINT_LIMITS = [
+        (-2.618, 2.618), (0, 3.14), (-2.967, 0),
+        (-1.832, 1.832), (-1.22, 1.22), (-3.14, 3.14),
+    ]
 
     def __init__(self):
         super().__init__('ik_solver_node')
         self.declare_parameter('urdf_file', '')
-        self.declare_parameter('base_link', 'Base')
-        self.declare_parameter('tip_link', 'zhua')
+        self.declare_parameter('base_link', 'base_link')
+        self.declare_parameter('tip_link', 'link6')
 
         self.chain = None
+        self.chain_limits = None
         self._load_kinematics()
 
         self.sub_target = self.create_subscription(
             PoseStamped, '/grasp_target', self._target_cb, 10)
-        self.pub_joints = self.create_publisher(JointState, '/joint_states', 10)
+        self.pub_joints = self.create_publisher(JointState, '/joint_goal', 10)
         self.pub_result = self.create_publisher(PoseStamped, '/grasp_result', 10)
         self.get_logger().info('IK 求解节点已启动')
 
@@ -139,10 +157,10 @@ class IKSolverNode(Node):
         else:
             try:
                 share = get_package_share_directory('vision_grasp')
-                urdf_path = os.path.join(share, 'description', 'genkiarm.urdf')
+                urdf_path = os.path.join(share, 'description', 'piper.urdf')
             except Exception:
                 urdf_path = os.path.join(os.path.dirname(__file__),
-                                         '..', 'description', 'genkiarm.urdf')
+                                         '..', 'description', 'piper.urdf')
 
         self.get_logger().info(f'加载 URDF: {urdf_path}')
         joints = _parse_urdf_joints(urdf_path)
@@ -154,6 +172,13 @@ class IKSolverNode(Node):
             return
         self.chain = [{'xyz': jd['xyz'], 'rpy': jd['rpy'], 'axis': jd['axis']}
                       for _, jd in path]
+        self.chain_limits = []
+        for jn, jd in path:
+            lim = jd.get('limit')
+            if lim:
+                self.chain_limits.append((lim['lower'], lim['upper']))
+            else:
+                self.chain_limits.append((-3.14, 3.14))
         T0 = _fk([0] * len(self.chain), self.chain)
         self.get_logger().info(
             f'运动链: {len(self.chain)} 关节, '
@@ -168,7 +193,7 @@ class IKSolverNode(Node):
 
         best_q, best_err = None, float('inf')
         for g_deg in [0, 30, -30, 45, -45, 60, -60]:
-            q, ok = _ik_position(target, self.chain,
+            q, ok = _ik_position(target, self.chain, self.chain_limits,
                                  q_init=[math.radians(g_deg)] * len(self.chain))
             T = _fk(q, self.chain)
             err = np.linalg.norm(target - T[:3, 3])
@@ -189,8 +214,8 @@ class IKSolverNode(Node):
 
         js = JointState()
         js.header.stamp = self.get_clock().now().to_msg()
-        js.name = self.JOINT_NAMES[:len(angles)]
-        js.position = angles
+        js.name = self.JOINT_NAMES[:len(angles)] + self.GRIPPER_JOINTS
+        js.position = angles + [0.0, 0.0]
         self.pub_joints.publish(js)
 
         result = PoseStamped()
