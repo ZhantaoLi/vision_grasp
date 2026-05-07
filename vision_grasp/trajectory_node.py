@@ -33,7 +33,8 @@ ST_CLOSING = 4
 ST_LIFTING = 5
 ST_RETRACTING = 6
 
-GRIPPER_OPEN = -0.06
+GRIPPER7_OPEN = -0.06   # joint7 axis=-1, 负值=张开
+GRIPPER8_OPEN = 0.06    # joint8 axis=+1, 正值=张开
 GRIPPER_CLOSE = 0.0
 
 
@@ -163,7 +164,7 @@ class TrajectoryNode(Node):
         pose = self._test_poses[self._test_idx]
         self._start_pos = list(self._current_pos)
         self._goal_pos = [math.radians(a) for a in pose] + \
-                         [GRIPPER_OPEN, GRIPPER_OPEN]
+                         [GRIPPER7_OPEN, GRIPPER8_OPEN]
         self._joint_names = list(self.JOINT_NAMES)
         self._moving = True
         self._start_time = self.get_clock().now()
@@ -257,8 +258,8 @@ class TrajectoryNode(Node):
             self.get_logger().warn('归位 IK 失败，使用抬升位置')
             q_home = q_lift
 
-        self._approach_joints = list(q_approach) + [GRIPPER_OPEN, GRIPPER_OPEN]
-        self._grasp_joints = list(q_grasp) + [GRIPPER_OPEN, GRIPPER_OPEN]
+        self._approach_joints = list(q_approach) + [GRIPPER7_OPEN, GRIPPER8_OPEN]
+        self._grasp_joints = list(q_grasp) + [GRIPPER7_OPEN, GRIPPER8_OPEN]
         self._lift_joints = list(q_lift) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
         self._home_joints = list(q_home) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
 
@@ -281,7 +282,7 @@ class TrajectoryNode(Node):
 
         if state == ST_OPENING:
             self.get_logger().info('[1/7] 张开夹爪')
-            self._set_arm_goal(self._current_pos, GRIPPER_OPEN, GRIPPER_OPEN)
+            self._set_arm_goal(self._current_pos, GRIPPER7_OPEN, GRIPPER8_OPEN)
 
         elif state == ST_APPROACH:
             self.get_logger().info('[2/7] 移到目标上方')
