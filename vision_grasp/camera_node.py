@@ -9,6 +9,7 @@ import rclpy
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class CameraNode(Node):
@@ -49,6 +50,7 @@ class CameraNode(Node):
 
         self.pub_image = self.create_publisher(Image, '/image_raw', 10)
         self.pub_info = self.create_publisher(CameraInfo, '/camera_info', 10)
+        self.pub_markers = self.create_publisher(MarkerArray, '/block_markers', 10)
 
         use_camera = self.get_parameter('use_camera').value
         if use_camera:
@@ -124,6 +126,30 @@ class CameraNode(Node):
         info.distortion_model = 'plumb_bob'
         info.d = [0.0, 0.0, 0.0, 0.0, 0.0]
         self.pub_info.publish(info)
+
+        # 发布色块 Marker (RViz 可视化)
+        ma = MarkerArray()
+        for i, (name, bx, by, bsize, bgr) in enumerate(self.blocks):
+            m = Marker()
+            m.header.frame_id = 'base_link'
+            m.header.stamp = msg.header.stamp
+            m.ns = 'blocks'
+            m.id = i
+            m.type = Marker.CUBE
+            m.action = Marker.ADD
+            m.pose.position.x = bx
+            m.pose.position.y = by
+            m.pose.position.z = bsize / 2.0
+            m.pose.orientation.w = 1.0
+            m.scale.x = bsize
+            m.scale.y = bsize
+            m.scale.z = bsize
+            m.color.r = bgr[2] / 255.0
+            m.color.g = bgr[1] / 255.0
+            m.color.b = bgr[0] / 255.0
+            m.color.a = 0.8
+            ma.markers.append(m)
+        self.pub_markers.publish(ma)
 
     def destroy_node(self):
         if self.cap is not None:

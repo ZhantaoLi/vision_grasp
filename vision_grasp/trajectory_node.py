@@ -17,6 +17,7 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
+from visualization_msgs.msg import Marker
 
 from .ik_utils import (_axis_angle_matrix, _fk, _fk_all_links, _ik_position,
                        _parse_urdf_joints, _rpy_to_matrix, _find_chain)
@@ -86,6 +87,7 @@ class TrajectoryNode(Node):
         self.sub_target = self.create_subscription(
             PoseStamped, '/grasp_target', self._grasp_target_cb, 10)
         self.pub_js = self.create_publisher(JointState, '/joint_states', 10)
+        self.pub_marker = self.create_publisher(Marker, '/grasp_marker', 10)
 
         self.timer = self.create_timer(1.0 / rate, self._tick)
 
@@ -188,6 +190,25 @@ class TrajectoryNode(Node):
 
         self.get_logger().info(
             f'收到目标: ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})')
+
+        # 发布目标点 Marker (RViz 可视化)
+        m = Marker()
+        m.header.frame_id = 'base_link'
+        m.header.stamp = self.get_clock().now().to_msg()
+        m.ns = 'grasp_target'
+        m.id = 0
+        m.type = Marker.SPHERE
+        m.action = Marker.ADD
+        m.pose.position.x = p.x
+        m.pose.position.y = p.y
+        m.pose.position.z = p.z
+        m.pose.orientation.w = 1.0
+        m.scale.x = m.scale.y = m.scale.z = 0.04
+        m.color.r = 1.0
+        m.color.g = 1.0
+        m.color.b = 0.0
+        m.color.a = 0.9
+        self.pub_marker.publish(m)
 
         # 计算 IK: 目标位置
         q_grasp = self._solve_ik(target)
