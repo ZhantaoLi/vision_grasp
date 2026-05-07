@@ -2,62 +2,81 @@
 """坐标转换节点 — 像素→相机系 3D→基座系，发布抓取目标位姿。
 
 订阅 /detected_objects (PoseStamped, 编码像素信息)
+订阅 /camera_info (CameraInfo, 相机内参)
 发布 /grasp_target (PoseStamped, 基座坐标系)
 """
-
-import math
-import time
 
 import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from rclpy.node import Node
+from sensor_msgs.msg import CameraInfo
 from tf2_ros import StaticTransformBroadcaster
 
 
+# 相机旋转矩阵: Xc→+Xb, Yc→-Yb, Zc→-Zb (向下看)
+CAM_R = np.array([
+    [1.0, 0.0, 0.0],
+    [0.0, -1.0, 0.0],
+    [0.0, 0.0, -1.0],
+])
+
+OBJECT_SIZES = {
+    'red_block': 0.035,
+    'green_block': 0.035,
+    'blue_block': 0.030,
+    'yellow_block': 0.032,
+}
+
+
 class TfTransformerNode(Node):
-    FX = 500.0
-    FY = 500.0
-    CX = 320.0
-    CY = 240.0
-
-    CAM_POS = np.array([0.15, 0.0, 0.5])
-    CAM_R = np.array([
-        [1.0, 0.0, 0.0],
-        [0.0, -1.0, 0.0],
-        [0.0, 0.0, -1.0],
-    ])
-
-    OBJECT_SIZES = {
-        'red_block': 0.035,
-        'green_block': 0.035,
-        'blue_block': 0.030,
-        'yellow_block': 0.032,
-    }
-
     def __init__(self):
         super().__init__('tf_transformer_node')
         self.declare_parameter('target_interval', 10.0)
+        self.declare_parameter('cam_pos_x', 0.15)
+        self.declare_parameter('cam_pos_y', 0.0)
+        self.declare_parameter('cam_pos_z', 0.5)
+
         self.target_interval = self.get_parameter('target_interval').value
+        self.cam_pos = np.array([
+            self.get_parameter('cam_pos_x').value,
+            self.get_parameter('cam_pos_y').value,
+            self.get_parameter('cam_pos_z').value,
+        ])
         self._last_target_time = 0.0
+
+        # 相机内参，从 /camera_info 更新
+        self._fx = 500.0
+        self._fy = 500.0
+        self._cx = 320.0
+        self._cy = 240.0
 
         self.tf_broadcaster = StaticTransformBroadcaster(self)
         self._broadcast_static_tf()
 
+        self.sub_info = self.create_subscription(
+            CameraInfo, '/camera_info', self._info_cb, 10)
         self.sub_det = self.create_subscription(
             PoseStamped, '/detected_objects', self._det_cb, 10)
         self.pub_target = self.create_publisher(PoseStamped, '/grasp_target', 10)
         self.get_logger().info(
             f'坐标转换节点已启动 (目标间隔 {self.target_interval}s)')
 
+    def _info_cb(self, msg: CameraInfo):
+        k = msg.k
+        self._fx = k[0]
+        self._fy = k[4]
+        self._cx = k[2]
+        self._cy = k[5]
+
     def _broadcast_static_tf(self):
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'base_link'
         t.child_frame_id = 'camera_link'
-        t.transform.translation.x = self.CAM_POS[0]
-        t.transform.translation.y = self.CAM_POS[1]
-        t.transform.translation.z = self.CAM_POS[2]
+        t.transform.translation.x = self.cam_pos[0]
+        t.transform.translation.y = self.cam_pos[1]
+        t.transform.translation.z = self.cam_pos[2]
         t.transform.rotation.w = 0.0
         t.transform.rotation.x = 1.0
         t.transform.rotation.y = 0.0
@@ -67,22 +86,19 @@ class TfTransformerNode(Node):
 
     def _pixel_to_base(self, u, v):
         """像素 (u,v) → 基座系 z=0 平面上的 3D 点 (射线-平面求交)。"""
-        # 相机系中的射线方向
-        d_cam = np.array([(u - self.CX) / self.FX,
-                          (v - self.CY) / self.FY,
+        d_cam = np.array([(u - self._cx) / self._fx,
+                          (v - self._cy) / self._fy,
                           1.0])
-        # 转到基座系
-        d_base = self.CAM_R @ d_cam
+        d_base = CAM_R @ d_cam
         if abs(d_base[2]) < 1e-9:
             return None
-        # 射线原点 + t*方向 与 z=0 平面求交
-        t = -self.CAM_POS[2] / d_base[2]
+        t = -self.cam_pos[2] / d_base[2]
         if t < 0:
             return None
-        return self.CAM_POS + t * d_base
+        return self.cam_pos + t * d_base
 
     def _det_cb(self, msg: PoseStamped):
-        now = time.monotonic()
+        now = self.get_clock().now().nanoseconds * 1e-9
         if now - self._last_target_time < self.target_interval:
             return
         self._last_target_time = now
@@ -100,7 +116,7 @@ class TfTransformerNode(Node):
         target.header.frame_id = 'base_link'
         target.pose.position.x = float(p_base[0])
         target.pose.position.y = float(p_base[1])
-        target.pose.position.z = float(self.OBJECT_SIZES.get(obj_type, 0.03))
+        target.pose.position.z = float(OBJECT_SIZES.get(obj_type, 0.03))
         target.pose.orientation.w = 1.0
         self.pub_target.publish(target)
 

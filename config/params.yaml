@@ -6,6 +6,9 @@ camera_node:
     fps: 30.0
     width: 640
     height: 480
+    cam_pos_x: 0.15       # 相机在基座系中的位置 (m)
+    cam_pos_y: 0.0
+    cam_pos_z: 0.5
 
 vision_node:
   ros__parameters:
@@ -13,19 +16,18 @@ vision_node:
     erode_iter: 1
     dilate_iter: 1
 
-ik_solver_node:
+tf_transformer_node:
   ros__parameters:
-    urdf_file: ''
-    base_link: 'base_link'
-    tip_link: 'link6'
+    target_interval: 10.0  # 目标发布间隔 (秒)
+    cam_pos_x: 0.15       # 相机在基座系中的位置 (m)
+    cam_pos_y: 0.0
+    cam_pos_z: 0.5
 
 arm_driver_node:
   ros__parameters:
     use_serial: false      # true=连接真实舵机
     serial_port: '/dev/ttyUSB0'
     baudrate: 1000000
-    gripper_open_angle: 45.0
-    gripper_close_angle: -30.0
 
 trajectory_node:
   ros__parameters:

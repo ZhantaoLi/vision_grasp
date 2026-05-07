@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""驱动执行节点 — 接收 IK 结果，可选驱动真实舵机。
+"""驱动执行节点 — 订阅 /joint_states，可选驱动真实舵机。"""
 
-订阅 /grasp_result (PoseStamped, header.frame_id 含关节角度信息)
-通过 JointState 发布控制指令。
-"""
+import math
 
 import rclpy
-from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
@@ -16,7 +13,7 @@ SERVO_MAP = {
     'joint4': 4, 'joint5': 5, 'joint6': 6,
 }
 
- 
+
 class ArmDriverNode(Node):
     def __init__(self):
         super().__init__('arm_driver_node')
@@ -27,9 +24,8 @@ class ArmDriverNode(Node):
         self.serial_ctrl = None
         self._init_serial_if_needed()
 
-        self.sub_result = self.create_subscription(
-            PoseStamped, '/grasp_result', self._result_cb, 10)
-        self.pub_joints = self.create_publisher(JointState, '/joint_states', 10)
+        self.sub_js = self.create_subscription(
+            JointState, '/joint_states', self._js_cb, 10)
         self.get_logger().info('驱动执行节点已启动')
 
     def _init_serial_if_needed(self):
@@ -48,12 +44,14 @@ class ArmDriverNode(Node):
             self.get_logger().warn(f'串口失败: {e}，回退仿真')
             self.serial_ctrl = None
 
-    def _result_cb(self, msg: PoseStamped):
-        # 从 /joint_states 订阅者获取当前角度 (由 IK solver 发布)
-        # 这里简单转发 JointState
-        self.get_logger().info(
-            f'收到抓取目标: ({msg.pose.position.x:.3f},'
-            f'{msg.pose.position.y:.3f},{msg.pose.position.z:.3f})')
+    def _js_cb(self, msg: JointState):
+        if self.serial_ctrl is None:
+            return
+        for name, pos in zip(msg.name, msg.position):
+            sid = SERVO_MAP.get(name)
+            if sid is not None:
+                deg = math.degrees(pos)
+                self.serial_ctrl.set_angle(sid, deg)
 
     def destroy_node(self):
         if self.serial_ctrl is not None:

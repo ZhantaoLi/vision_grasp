@@ -87,8 +87,6 @@ class TrajectoryNode(Node):
         self._ik_chain_dicts = None
         self._load_ik()
 
-        self.sub_goal = self.create_subscription(
-            JointState, '/joint_goal', self._goal_cb, 10)
         self.sub_target = self.create_subscription(
             PoseStamped, '/grasp_target', self._grasp_target_cb, 10)
         self.pub_js = self.create_publisher(JointState, '/joint_states', 10)
@@ -186,11 +184,6 @@ class TrajectoryNode(Node):
         self._start_time = self.get_clock().now()
         self.get_logger().info(f'测试姿态 {self._test_idx}: {pose}')
         self._test_idx = (self._test_idx + 1) % len(self._test_poses)
-
-    # ---------- /joint_goal 回调 (忽略，防止干扰状态机) ----------
-
-    def _goal_cb(self, msg: JointState):
-        pass  # 完全由状态机控制，忽略外部关节目标
 
     # ---------- /grasp_target 回调 (入口) ----------
 

@@ -20,6 +20,9 @@ class CameraNode(Node):
         self.declare_parameter('fps', 30.0)
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
+        self.declare_parameter('cam_pos_x', 0.15)
+        self.declare_parameter('cam_pos_y', 0.0)
+        self.declare_parameter('cam_pos_z', 0.5)
 
         self.bridge = CvBridge()
 
@@ -32,7 +35,11 @@ class CameraNode(Node):
         self.cy = self.height / 2.0
 
         # 相机在基座坐标系中的位姿 (向下看)
-        self.cam_pos = np.array([0.15, 0.0, 0.5])
+        self.cam_pos = np.array([
+            self.get_parameter('cam_pos_x').value,
+            self.get_parameter('cam_pos_y').value,
+            self.get_parameter('cam_pos_z').value,
+        ])
         # 旋转矩阵: Xc→+Xb, Yc→-Yb, Zc→-Zb
         self.cam_R = np.array([
             [1.0, 0.0, 0.0],

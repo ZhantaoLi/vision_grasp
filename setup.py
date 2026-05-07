@@ -27,7 +27,6 @@ setup(
             'camera_node = vision_grasp.camera_node:main',
             'vision_node = vision_grasp.vision_node:main',
             'tf_transformer_node = vision_grasp.tf_transformer_node:main',
-            'ik_solver_node = vision_grasp.ik_solver_node:main',
             'arm_driver_node = vision_grasp.arm_driver_node:main',
             'trajectory_node = vision_grasp.trajectory_node:main',
         ],

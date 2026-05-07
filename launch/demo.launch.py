@@ -51,14 +51,6 @@ def generate_launch_description():
 
         Node(
             package='vision_grasp',
-            executable='ik_solver_node',
-            name='ik_solver_node',
-            parameters=[config_path],
-            output='screen',
-        ),
-
-        Node(
-            package='vision_grasp',
             executable='trajectory_node',
             name='trajectory_node',
             parameters=[config_path],
