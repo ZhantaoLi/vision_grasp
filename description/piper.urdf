@@ -1,22 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Original agilex_open_class URDF — joint parameters match our STL meshes -->
 <robot
   name="piper_description">
   <link
     name="base_link">
-    <!-- <inertial>
-      <origin
-        xyz="-0.00973928490005031 1.8312708928633E-06 0.0410140167677137"
-        rpy="0 0 0" />
-      <mass
-        value="0.162352169522719" />
-      <inertia
-        ixx="0.000226592553127906"
-        ixy="-7.33974356968813E-08"
-        ixz="2.13221970218123E-06"
-        iyy="0.000269447877479622"
-        iyz="8.15167478685076E-09"
-        izz="0.000222318286704" />
-    </inertial> -->
     <visual>
       <origin
         xyz="0 0 0"
@@ -459,7 +446,7 @@
         value="0.0264822490707451" />
       <inertia
         ixx="9.99782474142963E-06"
-        ixy="-1.57547666236405E-07"
+        ixy="1.57547666236405E-07"
         ixz="2.71355834243046E-08"
         iyy="6.17952362333486E-06"
         iyz="1.58939503259658E-06"
@@ -507,62 +494,4 @@
       effort="100"
       velocity="1" />
   </joint>
-  <!-- <link
-    name="link8">
-    <inertial>
-      <origin
-        xyz="-0.000277795893713934 -0.046767350270289 -0.00921029791141448"
-        rpy="0 0 0" />
-      <mass
-        value="0.0264822500394006" />
-      <inertia
-        ixx="9.99782519244544E-06"
-        ixy="-1.57547595978589E-07"
-        ixz="-2.71355785017816E-08"
-        iyy="6.17952364356547E-06"
-        iyz="-1.58939504838734E-06"
-        izz="1.42102253390315E-05" />
-    </inertial>
-    <visual>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="package://vision_grasp/description/meshes/link8.STL" />
-      </geometry>
-      <material
-        name="">
-        <color
-          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="package://vision_grasp/description/meshes/link8.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint
-    name="joint8"
-    type="prismatic">
-    <origin
-      xyz="-0.037167 0 0.13503"
-      rpy="1.5708 0 1.5708" />
-    <parent
-      link="link6" />
-    <child
-      link="link8" />
-    <axis
-      xyz="0 0 -1" />
-    <limit
-      lower="-0.038"
-      upper="0"
-      effort="100"
-      velocity="1" />
-  </joint> -->
 </robot>

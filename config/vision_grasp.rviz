@@ -101,6 +101,26 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: GraspTarget
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /grasp_marker
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: DetectedObjects
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /detected_markers
+      Value: true
     - Class: rviz_default_plugins/Image
       Enabled: false
       Max Value: 1

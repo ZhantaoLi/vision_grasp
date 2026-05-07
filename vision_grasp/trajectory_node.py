@@ -168,6 +168,12 @@ class TrajectoryNode(Node):
         # 夹爪沿 link6 z 轴偏移 GRIPPER_OFFSET_Z
         return T[2, 3] + T[2, 2] * GRIPPER_OFFSET_Z
 
+    def _gripper_tip(self, q):
+        """计算夹爪原点在基座系中的完整 3D 坐标。"""
+        T = _fk(q, self._ik_chain_dicts)
+        # 夹爪沿 link6 z 轴偏移 GRIPPER_OFFSET_Z（XYZ 三个方向都有分量）
+        return T[:3, 3] + T[:3, 2] * GRIPPER_OFFSET_Z
+
     # ---------- 测试模式 ----------
 
     def _test_cycle(self):
@@ -221,24 +227,42 @@ class TrajectoryNode(Node):
         m.color.a = 0.9
         self.pub_marker.publish(m)
 
-        # 计算 IK: 目标位置，自动抬高直到夹爪不穿地
+        # 计算 IK: 迭代纠正夹爪 XYZ 偏移 (阻尼修正)
         q_grasp = None
+        best_q, best_err = None, float('inf')
         grasp_target = target.copy()
-        for _ in range(10):
+        for it in range(20):
             q_try = self._solve_ik(grasp_target)
             if q_try is None:
                 break
-            gz = self._gripper_z(q_try)
-            if gz >= 0.005:
+            tip = self._gripper_tip(q_try)
+            gz = tip[2]
+            if gz < 0.005:
+                grasp_target[2] += -gz + 0.01
+                self.get_logger().info(
+                    f'夹爪穿地 (z={gz:.3f}m)，抬高目标 '
+                    f'{grasp_target[2]:.3f} → {grasp_target[2]:.3f}m')
+            err = target - tip
+            err_norm = np.linalg.norm(err)
+            self.get_logger().info(
+                f'[{it}] 夹爪: ({tip[0]:.3f},{tip[1]:.3f},{tip[2]:.3f}) '
+                f'偏差: {err_norm:.4f}m')
+            if err_norm < best_err:
+                best_q, best_err = q_try, err_norm
+            if err_norm < 0.005:
                 q_grasp = q_try
                 break
-            self.get_logger().info(
-                f'夹爪穿地 (z={gz:.3f}m)，抬高目标 '
-                f'{grasp_target[2]:.3f} → {grasp_target[2] - gz + 0.01:.3f}m')
-            grasp_target[2] = grasp_target[2] - gz + 0.01
+            # 阻尼修正: 每次只修正部分误差，避免振荡
+            grasp_target = grasp_target + 0.6 * err
         if q_grasp is None:
-            self.get_logger().warn('目标 IK 失败或无法避免穿地')
-            return
+            if best_q is not None and best_err < 0.02:
+                q_grasp = best_q
+                self.get_logger().info(
+                    f'使用最佳解 (偏差 {best_err:.4f}m)')
+            else:
+                self.get_logger().warn(
+                    f'目标 IK 失败 (最佳偏差 {best_err:.4f}m)')
+                return
 
         # 计算 IK: 接近位置，自动抬高直到下降路径安全
         q_approach = None
