@@ -19,8 +19,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker
 
-from .ik_utils import (_axis_angle_matrix, _fk, _fk_all_links, _ik_position,
-                       _parse_urdf_joints, _rpy_to_matrix, _find_chain)
+from .ik_utils import (_fk, _fk_all_links, _ik_position,
+                       _parse_urdf_joints, _find_chain)
 
 
 # ---------- 状态机常量 ----------
@@ -36,6 +36,10 @@ ST_RETRACTING = 6
 GRIPPER7_OPEN = -0.06   # joint7 axis=-1, 负值=张开
 GRIPPER8_OPEN = 0.06    # joint8 axis=+1, 正值=张开
 GRIPPER_CLOSE = 0.0
+
+# link6→link7/link8 的偏移 (沿 link6 z 轴 0.135m)
+# 当 link6 z 轴朝下时，夹爪会延伸到目标下方
+GRIPPER_OFFSET_Z = 0.13503
 
 
 class TrajectoryNode(Node):
@@ -158,6 +162,12 @@ class TrajectoryNode(Node):
                     break
         return best_q
 
+    def _gripper_z(self, q):
+        """计算夹爪原点在基座系中的 z 坐标。"""
+        T = _fk(q, self._ik_chain_dicts)
+        # 夹爪沿 link6 z 轴偏移 GRIPPER_OFFSET_Z
+        return T[2, 3] + T[2, 2] * GRIPPER_OFFSET_Z
+
     # ---------- 测试模式 ----------
 
     def _test_cycle(self):
@@ -211,30 +221,51 @@ class TrajectoryNode(Node):
         m.color.a = 0.9
         self.pub_marker.publish(m)
 
-        # 计算 IK: 目标位置
-        q_grasp = self._solve_ik(target)
+        # 计算 IK: 目标位置，自动抬高直到夹爪不穿地
+        q_grasp = None
+        grasp_target = target.copy()
+        for _ in range(10):
+            q_try = self._solve_ik(grasp_target)
+            if q_try is None:
+                break
+            gz = self._gripper_z(q_try)
+            if gz >= 0.005:
+                q_grasp = q_try
+                break
+            self.get_logger().info(
+                f'夹爪穿地 (z={gz:.3f}m)，抬高目标 '
+                f'{grasp_target[2]:.3f} → {grasp_target[2] - gz + 0.01:.3f}m')
+            grasp_target[2] = grasp_target[2] - gz + 0.01
         if q_grasp is None:
-            self.get_logger().warn('目标 IK 失败')
+            self.get_logger().warn('目标 IK 失败或无法避免穿地')
             return
 
         # 计算 IK: 接近位置，自动抬高直到下降路径安全
         q_approach = None
         approach_h = self.approach_height
         for _ in range(5):
-            approach_target = target.copy()
+            approach_target = grasp_target.copy()
             approach_target[2] += approach_h
             q_try = self._solve_ik(approach_target)
             if q_try is None:
                 approach_h += 0.1
                 continue
-            # 采样中点检查所有 link 的 z 坐标
-            q_mid = (np.array(q_try) + np.array(q_grasp)) / 2.0
-            zs = _fk_all_links(q_mid, self._ik_chain_dicts)
-            if all(z > 0.02 for z in zs):
+            # 采样多个点检查所有 link 和夹爪的 z 坐标
+            safe = True
+            for t_check in [0.25, 0.5, 0.75]:
+                q_check = (np.array(q_try) * (1 - t_check)
+                           + np.array(q_grasp) * t_check)
+                zs = _fk_all_links(q_check, self._ik_chain_dicts)
+                gz = self._gripper_z(q_check)
+                all_z = zs + [gz]
+                if any(z <= 0.02 for z in all_z):
+                    safe = False
+                    break
+            if safe:
                 q_approach = q_try
                 break
             self.get_logger().info(
-                f'下降路径不安全 (最低 z={min(zs):.3f})，'
+                f'下降路径不安全 (最低 z={min(all_z):.3f})，'
                 f'抬高接近高度到 {approach_h + 0.1:.2f}m')
             approach_h += 0.1
 
@@ -243,7 +274,7 @@ class TrajectoryNode(Node):
             return
 
         # 计算 IK: 抬升位置 (z + lift_height)
-        lift_target = target.copy()
+        lift_target = grasp_target.copy()
         lift_target[2] += self.lift_height
         q_lift = self._solve_ik(lift_target)
         if q_lift is None:
@@ -251,7 +282,7 @@ class TrajectoryNode(Node):
             q_lift = q_grasp
 
         # 计算 IK: 归位位置 (高于抬升, 跨目标移动安全)
-        home_target = target.copy()
+        home_target = grasp_target.copy()
         home_target[2] = self.home_height
         q_home = self._solve_ik(home_target)
         if q_home is None:
