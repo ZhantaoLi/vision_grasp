@@ -172,6 +172,7 @@ class TrajectoryNode(Node):
         self.declare_parameter('lift_height', 0.2)
         self.declare_parameter('approach_height', 0.15)
         self.declare_parameter('home_height', 0.35)
+        self.declare_parameter('max_joint_velocity', 1.0)
 
         self.move_duration = self.get_parameter('move_duration').value
         rate = self.get_parameter('publish_rate').value
@@ -179,6 +180,8 @@ class TrajectoryNode(Node):
         self.lift_height = self.get_parameter('lift_height').value
         self.approach_height = self.get_parameter('approach_height').value
         self.home_height = self.get_parameter('home_height').value
+        self.max_vel = self.get_parameter('max_joint_velocity').value
+        self._tick_period = 1.0 / rate
 
         self._joint_names = list(self.JOINT_NAMES)
         self._current_pos = [0.0] * 8
@@ -417,6 +420,14 @@ class TrajectoryNode(Node):
         while len(self._start_pos) < len(self._goal_pos):
             self._start_pos.append(0.0)
         self._start_pos = self._start_pos[:len(self._goal_pos)]
+
+        # 根据关节速度限制计算实际运动时长
+        max_change = max(abs(g - s) for s, g in
+                         zip(self._start_pos, self._goal_pos))
+        vel_duration = max_change / self.max_vel if self.max_vel > 0 else 0
+        self._actual_duration = max(self.move_duration, vel_duration,
+                                    self._tick_period)
+
         self._moving = True
         self._start_time = self.get_clock().now()
 
@@ -427,7 +438,7 @@ class TrajectoryNode(Node):
             return
 
         elapsed = (self.get_clock().now() - self._start_time).nanoseconds * 1e-9
-        t = min(elapsed / self.move_duration, 1.0)
+        t = min(elapsed / self._actual_duration, 1.0)
 
         pos = [s + (g - s) * t for s, g in zip(self._start_pos, self._goal_pos)]
         self._current_pos = list(pos)

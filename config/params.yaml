@@ -35,3 +35,4 @@ trajectory_node:
     approach_height: 0.15  # 接近目标上方高度 (m)
     lift_height: 0.2       # 抓取后抬升高度 (m)
     home_height: 0.35      # 归位安全高度 (m)
+    max_joint_velocity: 1.0 # 最大关节速度 (rad/s)
