@@ -59,22 +59,27 @@ class TfTransformerNode(Node):
         t.transform.translation.y = self.CAM_POS[1]
         t.transform.translation.z = self.CAM_POS[2]
         t.transform.rotation.w = 0.0
-        t.transform.rotation.x = 0.7071068
-        t.transform.rotation.y = 0.7071068
+        t.transform.rotation.x = 1.0
+        t.transform.rotation.y = 0.0
         t.transform.rotation.z = 0.0
         self.tf_broadcaster.sendTransform(t)
         self.get_logger().info('已广播静态 TF: base_link → camera_link')
 
-    def _pixel_to_cam3d(self, u, v, pixel_size, real_size):
-        if pixel_size < 1.0:
+    def _pixel_to_base(self, u, v):
+        """像素 (u,v) → 基座系 z=0 平面上的 3D 点 (射线-平面求交)。"""
+        # 相机系中的射线方向
+        d_cam = np.array([(u - self.CX) / self.FX,
+                          (v - self.CY) / self.FY,
+                          1.0])
+        # 转到基座系
+        d_base = self.CAM_R @ d_cam
+        if abs(d_base[2]) < 1e-9:
             return None
-        z_c = (real_size * self.FX) / pixel_size
-        x_c = (u - self.CX) * z_c / self.FX
-        y_c = (v - self.CY) * z_c / self.FY
-        return np.array([x_c, y_c, z_c])
-
-    def _cam_to_base(self, p_cam):
-        return self.CAM_R @ p_cam + self.CAM_POS
+        # 射线原点 + t*方向 与 z=0 平面求交
+        t = -self.CAM_POS[2] / d_base[2]
+        if t < 0:
+            return None
+        return self.CAM_POS + t * d_base
 
     def _det_cb(self, msg: PoseStamped):
         now = time.monotonic()
@@ -82,25 +87,20 @@ class TfTransformerNode(Node):
             return
         self._last_target_time = now
 
-        obj_type = msg.header.frame_id  # 物体类型
+        obj_type = msg.header.frame_id
         u = msg.pose.position.x
         v = msg.pose.position.y
-        pixel_w = msg.pose.position.z
 
-        real_size = self.OBJECT_SIZES.get(obj_type, 0.03)
-
-        p_cam = self._pixel_to_cam3d(u, v, pixel_w, real_size)
-        if p_cam is None:
+        p_base = self._pixel_to_base(u, v)
+        if p_base is None:
             return
-
-        p_base = self._cam_to_base(p_cam)
 
         target = PoseStamped()
         target.header.stamp = self.get_clock().now().to_msg()
         target.header.frame_id = 'base_link'
         target.pose.position.x = float(p_base[0])
         target.pose.position.y = float(p_base[1])
-        target.pose.position.z = float(max(p_base[2], 0.0) + 0.05)
+        target.pose.position.z = 0.05
         target.pose.orientation.w = 1.0
         self.pub_target.publish(target)
 
