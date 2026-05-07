@@ -252,8 +252,12 @@ class TrajectoryNode(Node):
             if err_norm < 0.005:
                 q_grasp = q_try
                 break
-            # 阻尼修正: 每次只修正部分误差，避免振荡
-            grasp_target = grasp_target + 0.6 * err
+            # 阻尼修正: 每次只修正部分误差，限制最大步长避免振荡
+            step = 0.6 * err
+            step_norm = np.linalg.norm(step)
+            if step_norm > 0.03:
+                step = step * 0.03 / step_norm
+            grasp_target = grasp_target + step
         if q_grasp is None:
             if best_q is not None and best_err < 0.02:
                 q_grasp = best_q
