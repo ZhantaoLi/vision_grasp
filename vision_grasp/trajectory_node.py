@@ -171,12 +171,14 @@ class TrajectoryNode(Node):
         self.declare_parameter('tip_link', 'link6')
         self.declare_parameter('lift_height', 0.2)
         self.declare_parameter('approach_height', 0.15)
+        self.declare_parameter('home_height', 0.35)
 
         self.move_duration = self.get_parameter('move_duration').value
         rate = self.get_parameter('publish_rate').value
         test_mode = self.get_parameter('test_mode').value
         self.lift_height = self.get_parameter('lift_height').value
         self.approach_height = self.get_parameter('approach_height').value
+        self.home_height = self.get_parameter('home_height').value
 
         self._joint_names = list(self.JOINT_NAMES)
         self._current_pos = [0.0] * 8
@@ -343,9 +345,18 @@ class TrajectoryNode(Node):
             self.get_logger().warn('抬升 IK 失败，使用目标位置')
             q_lift = q_grasp
 
+        # 计算 IK: 归位位置 (高于抬升, 跨目标移动安全)
+        home_target = target.copy()
+        home_target[2] = self.home_height
+        q_home = self._solve_ik(home_target)
+        if q_home is None:
+            self.get_logger().warn('归位 IK 失败，使用抬升位置')
+            q_home = q_lift
+
         self._approach_joints = list(q_approach) + [GRIPPER_OPEN, GRIPPER_OPEN]
         self._grasp_joints = list(q_grasp) + [GRIPPER_OPEN, GRIPPER_OPEN]
         self._lift_joints = list(q_lift) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
+        self._home_joints = list(q_home) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
 
         self.get_logger().info(
             f'接近关节: {[f"{math.degrees(a):.0f}°" for a in q_approach]}')
@@ -353,6 +364,8 @@ class TrajectoryNode(Node):
             f'抓取关节: {[f"{math.degrees(a):.0f}°" for a in q_grasp]}')
         self.get_logger().info(
             f'抬升关节: {[f"{math.degrees(a):.0f}°" for a in q_lift]}')
+        self.get_logger().info(
+            f'归位关节: {[f"{math.degrees(a):.0f}°" for a in q_home]}')
 
         # 开始状态机: 张开夹爪
         self._enter_state(ST_OPENING)
@@ -383,8 +396,8 @@ class TrajectoryNode(Node):
             self._set_arm_goal(self._lift_joints)
 
         elif state == ST_RETRACTING:
-            self.get_logger().info('[6/7] 收回到安全高度')
-            self._set_arm_goal(self._approach_joints)
+            self.get_logger().info('[6/7] 归位到安全高度')
+            self._set_arm_goal(self._home_joints)
 
         elif state == ST_IDLE:
             self.get_logger().info('[7/7] 抓取完成，等待新目标')

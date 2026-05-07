@@ -32,3 +32,6 @@ trajectory_node:
     move_duration: 3.0     # 运动时长 (秒)
     publish_rate: 20.0     # 发布频率 (Hz)
     test_mode: false       # true=循环演示各关节, false=等待 IK 目标
+    approach_height: 0.15  # 接近目标上方高度 (m)
+    lift_height: 0.2       # 抓取后抬升高度 (m)
+    home_height: 0.35      # 归位安全高度 (m)
