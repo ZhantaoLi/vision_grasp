@@ -238,13 +238,14 @@ class TrajectoryNode(Node):
             tip = self._gripper_tip(q_try)
             gz = tip[2]
             if gz < 0.005:
+                old_z = grasp_target[2]
                 grasp_target[2] += -gz + 0.01
                 self.get_logger().info(
                     f'夹爪穿地 (z={gz:.3f}m)，抬高目标 '
-                    f'{grasp_target[2]:.3f} → {grasp_target[2]:.3f}m')
+                    f'{old_z:.3f} → {grasp_target[2]:.3f}m')
             err = target - tip
             err_norm = np.linalg.norm(err)
-            self.get_logger().info(
+            self.get_logger().debug(
                 f'[{it}] 夹爪: ({tip[0]:.3f},{tip[1]:.3f},{tip[2]:.3f}) '
                 f'偏差: {err_norm:.4f}m')
             if err_norm < best_err:
