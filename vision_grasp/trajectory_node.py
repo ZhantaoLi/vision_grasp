@@ -99,6 +99,21 @@ def _fk(q, chain):
     return T
 
 
+def _fk_all_links(q, chain):
+    """返回每个关节子 link 在基座系中的 z 坐标列表。"""
+    T = np.eye(4)
+    zs = []
+    for jd, qi in zip(chain, q):
+        To = np.eye(4)
+        To[:3, :3] = _rpy_to_matrix(*jd['rpy'])
+        To[:3, 3] = jd['xyz']
+        Tj = np.eye(4)
+        Tj[:3, :3] = _axis_angle_matrix(jd['axis'], qi)
+        T = T @ To @ Tj
+        zs.append(T[2, 3])
+    return zs
+
+
 def _ik_position(target_pos, chain, chain_limits=None, q_init=None,
                  max_iter=500, tol=1e-4):
     n = len(chain)
@@ -289,18 +304,35 @@ class TrajectoryNode(Node):
         self.get_logger().info(
             f'收到目标: ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})')
 
-        # 计算 IK: 接近位置 (目标上方, 避免穿过地面)
-        approach_target = target.copy()
-        approach_target[2] += self.approach_height
-        q_approach = self._solve_ik(approach_target)
-        if q_approach is None:
-            self.get_logger().warn('接近位置 IK 失败')
-            return
-
         # 计算 IK: 目标位置
         q_grasp = self._solve_ik(target)
         if q_grasp is None:
             self.get_logger().warn('目标 IK 失败')
+            return
+
+        # 计算 IK: 接近位置，自动抬高直到下降路径安全
+        q_approach = None
+        approach_h = self.approach_height
+        for _ in range(5):
+            approach_target = target.copy()
+            approach_target[2] += approach_h
+            q_try = self._solve_ik(approach_target)
+            if q_try is None:
+                approach_h += 0.1
+                continue
+            # 采样中点检查所有 link 的 z 坐标
+            q_mid = (np.array(q_try) + np.array(q_grasp)) / 2.0
+            zs = _fk_all_links(q_mid, self._ik_chain_dicts)
+            if all(z > 0.02 for z in zs):
+                q_approach = q_try
+                break
+            self.get_logger().info(
+                f'下降路径不安全 (最低 z={min(zs):.3f})，'
+                f'抬高接近高度到 {approach_h + 0.1:.2f}m')
+            approach_h += 0.1
+
+        if q_approach is None:
+            self.get_logger().warn('无法找到安全的接近位置')
             return
 
         # 计算 IK: 抬升位置 (z + lift_height)
