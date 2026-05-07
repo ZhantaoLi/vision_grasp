@@ -100,7 +100,7 @@ class TfTransformerNode(Node):
         target.header.frame_id = 'base_link'
         target.pose.position.x = float(p_base[0])
         target.pose.position.y = float(p_base[1])
-        target.pose.position.z = 0.05
+        target.pose.position.z = float(self.OBJECT_SIZES.get(obj_type, 0.03))
         target.pose.orientation.w = 1.0
         self.pub_target.publish(target)
 
