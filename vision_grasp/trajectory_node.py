@@ -4,7 +4,7 @@
 状态机:
   IDLE → 开夹爪 → 移到目标 → 闭夹爪 → 抬起 → IDLE
 
-订阅 /joint_goal (IK 关节角度) 和 /grasp_target (目标 3D 坐标)
+订阅 /grasp_target (目标 3D 坐标 + block 宽度)
 发布 /joint_states (插值后的关节角度)
 """
 
@@ -35,7 +35,10 @@ ST_RETRACTING = 6
 
 GRIPPER7_OPEN = -0.06   # joint7 axis=-1, 负值=张开
 GRIPPER8_OPEN = 0.06    # joint8 axis=+1, 正值=张开
-GRIPPER_CLOSE = 0.0
+# joint7 沿 -X 移动, joint8 沿 +X 移动 (link6 frame)
+# 全闭 (pos=0) 时手指刚好接触; 全开 (7=-0.06, 8=+0.06) 时间距 0.12m
+GRIPPER_CLOSE_SAFE7 = -0.0025   # 无 block 宽度时: joint7 略正 → 手指刚好接触
+GRIPPER_CLOSE_SAFE8 = 0.0025  # 无 block 宽度时: joint8 略负 → 手指刚好接触
 
 # link6→link7/link8 的偏移 (沿 link6 z 轴 0.135m)
 # 当 link6 z 轴朝下时，夹爪会延伸到目标下方
@@ -80,6 +83,8 @@ class TrajectoryNode(Node):
         self._state = ST_IDLE
         self._grasp_joints = None
         self._saved_target = None
+        self._gripper_close7 = GRIPPER_CLOSE_SAFE7
+        self._gripper_close8 = GRIPPER_CLOSE_SAFE8
 
         # IK 引擎
         self._ik_chain = None
@@ -198,6 +203,15 @@ class TrajectoryNode(Node):
         target = np.array([p.x, p.y, p.z])
         self._saved_target = target.copy()
 
+        # 根据 block 宽度计算夹爪闭合位置
+        # joint7 沿 -X, joint8 沿 +X: 需要相反符号才能从两侧夹紧
+        block_w = msg.pose.orientation.x if msg.pose.orientation.x > 0 else 0.035
+        self._gripper_close7 = -block_w / 2.0    # joint7 正值 → finger7 到 -X 侧
+        self._gripper_close8 = block_w / 2.0   # joint8 负值 → finger8 到 +X 侧
+        self.get_logger().info(
+            f'block 宽度 {block_w:.3f}m → 夹爪 j7={self._gripper_close7:+.4f}m, '
+            f'j8={self._gripper_close8:+.4f}m')
+
         self.get_logger().info(
             f'收到目标: ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})')
 
@@ -311,10 +325,11 @@ class TrajectoryNode(Node):
             self.get_logger().warn('归位 IK 失败，使用抬升位置')
             q_home = q_lift
 
+        gc7, gc8 = self._gripper_close7, self._gripper_close8
         self._approach_joints = list(q_approach) + [GRIPPER7_OPEN, GRIPPER8_OPEN]
         self._grasp_joints = list(q_grasp) + [GRIPPER7_OPEN, GRIPPER8_OPEN]
-        self._lift_joints = list(q_lift) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
-        self._home_joints = list(q_home) + [GRIPPER_CLOSE, GRIPPER_CLOSE]
+        self._lift_joints = list(q_lift) + [gc7, gc8]
+        self._home_joints = list(q_home) + [gc7, gc8]
 
         self.get_logger().info(
             f'接近关节: {[f"{math.degrees(a):.0f}°" for a in q_approach]}')
@@ -346,8 +361,9 @@ class TrajectoryNode(Node):
             self._set_arm_goal(self._grasp_joints)
 
         elif state == ST_CLOSING:
-            self.get_logger().info('[4/7] 闭合夹爪')
-            self._set_arm_goal(self._current_pos, GRIPPER_CLOSE, GRIPPER_CLOSE)
+            gc7, gc8 = self._gripper_close7, self._gripper_close8
+            self.get_logger().info(f'[4/7] 闭合夹爪 (j7={gc7:+.4f}m, j8={gc8:+.4f}m)')
+            self._set_arm_goal(self._current_pos, gc7, gc8)
 
         elif state == ST_LIFTING:
             self.get_logger().info('[5/7] 抬升机械臂')

@@ -111,13 +111,15 @@ class TfTransformerNode(Node):
         if p_base is None:
             return
 
+        block_w = OBJECT_SIZES.get(obj_type, 0.03)
         target = PoseStamped()
         target.header.stamp = self.get_clock().now().to_msg()
         target.header.frame_id = 'base_link'
         target.pose.position.x = float(p_base[0])
         target.pose.position.y = float(p_base[1])
-        target.pose.position.z = float(OBJECT_SIZES.get(obj_type, 0.03))
+        target.pose.position.z = float(block_w)
         target.pose.orientation.w = 1.0
+        target.pose.orientation.x = float(block_w)
         self.pub_target.publish(target)
 
         self.get_logger().info(
