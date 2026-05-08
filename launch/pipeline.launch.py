@@ -43,6 +43,7 @@ def generate_launch_description():
             package='vision_grasp',
             executable='tf_transformer_node',
             name='tf_transformer_node',
+            parameters=[config_path],
         ),
 
         Node(
