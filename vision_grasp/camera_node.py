@@ -11,6 +11,50 @@ from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
 from visualization_msgs.msg import Marker, MarkerArray
 
+DEFAULT_SIM_BLOCKS = [
+    ('red_block', 0.30, 0.15, 0.035, (0, 0, 200)),
+    ('green_block', 0.00, -0.18, 0.035, (0, 180, 0)),
+    ('blue_block', 0.35, -0.12, 0.030, (200, 100, 0)),
+    ('yellow_block', 0.05, 0.20, 0.032, (0, 200, 220)),
+]
+
+
+def build_sim_blocks(
+    block_names,
+    block_xs,
+    block_ys,
+    block_sizes,
+    block_color_bs,
+    block_color_gs,
+    block_color_rs,
+):
+    lengths = [
+        len(block_names),
+        len(block_xs),
+        len(block_ys),
+        len(block_sizes),
+        len(block_color_bs),
+        len(block_color_gs),
+        len(block_color_rs),
+    ]
+    if len(set(lengths)) != 1:
+        raise ValueError('All block parameter arrays must have the same length')
+
+    blocks = []
+    for name, bx, by, bsize, blue, green, red in zip(
+        block_names,
+        block_xs,
+        block_ys,
+        block_sizes,
+        block_color_bs,
+        block_color_gs,
+        block_color_rs,
+    ):
+        blocks.append(
+            (str(name), float(bx), float(by), float(bsize), (int(blue), int(green), int(red)))
+        )
+    return blocks
+
 
 class CameraNode(Node):
     def __init__(self):
@@ -23,6 +67,34 @@ class CameraNode(Node):
         self.declare_parameter('cam_pos_x', 0.15)
         self.declare_parameter('cam_pos_y', 0.0)
         self.declare_parameter('cam_pos_z', 0.5)
+        self.declare_parameter(
+            'block_names',
+            [name for name, _bx, _by, _size, _color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_xs',
+            [bx for _name, bx, _by, _size, _color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_ys',
+            [by for _name, _bx, by, _size, _color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_sizes',
+            [bsize for _name, _bx, _by, bsize, _color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_color_bs',
+            [color[0] for _name, _bx, _by, _size, color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_color_gs',
+            [color[1] for _name, _bx, _by, _size, color in DEFAULT_SIM_BLOCKS],
+        )
+        self.declare_parameter(
+            'block_color_rs',
+            [color[2] for _name, _bx, _by, _size, color in DEFAULT_SIM_BLOCKS],
+        )
 
         self.bridge = CvBridge()
 
@@ -47,13 +119,15 @@ class CameraNode(Node):
             [0.0, 0.0, -1.0],
         ])
 
-        # 仿真场景中的方块 (frame, x_m, y_m, size_m, bgr_color)
-        self.blocks = [
-            ('red_block', 0.30, 0.15, 0.035, (0, 0, 200)),
-            ('green_block', 0.00, -0.18, 0.035, (0, 180, 0)),
-            ('blue_block', 0.35, -0.12, 0.030, (200, 100, 0)),
-            ('yellow_block', 0.05, 0.20, 0.032, (0, 200, 220)),
-        ]
+        self.blocks = build_sim_blocks(
+            block_names=self.get_parameter('block_names').value,
+            block_xs=self.get_parameter('block_xs').value,
+            block_ys=self.get_parameter('block_ys').value,
+            block_sizes=self.get_parameter('block_sizes').value,
+            block_color_bs=self.get_parameter('block_color_bs').value,
+            block_color_gs=self.get_parameter('block_color_gs').value,
+            block_color_rs=self.get_parameter('block_color_rs').value,
+        )
 
         self.pub_image = self.create_publisher(Image, '/image_raw', 10)
         self.pub_info = self.create_publisher(CameraInfo, '/camera_info', 10)

@@ -133,7 +133,23 @@ ros2 launch vision_grasp demo.launch.py
 - `trajectory_node` 会发布 `/joint_states`
 - RViz 中可以看到机械臂模型、色块 marker 和抓取目标 marker
 
-仿真场景中的色块由 `camera_node` 内部固定生成，颜色和位置用于验证整条视觉抓取流程是否打通。
+仿真场景中的色块现在由 [config/params.yaml](./config/params.yaml) 参数驱动，不再写死在 Python 代码里。改测试场景时只需要改参数文件，然后重新 launch。
+
+当前默认场景参数：
+
+```yaml
+camera_node:
+  ros__parameters:
+    block_names: ['red_block', 'green_block', 'blue_block', 'yellow_block']
+    block_xs: [0.30, 0.00, 0.35, 0.05]
+    block_ys: [0.15, -0.18, -0.12, 0.20]
+    block_sizes: [0.035, 0.035, 0.030, 0.032]
+    block_color_bs: [0, 0, 200, 0]
+    block_color_gs: [0, 180, 100, 200]
+    block_color_rs: [200, 0, 0, 220]
+```
+
+这些数组按索引一一对应；同一索引组成一个色块配置。长度必须一致。
 
 ## Hardware Mode
 
@@ -256,6 +272,13 @@ arm_driver_node:
 - `cam_pos_x`
 - `cam_pos_y`
 - `cam_pos_z`
+- `block_names`
+- `block_xs`
+- `block_ys`
+- `block_sizes`
+- `block_color_bs`
+- `block_color_gs`
+- `block_color_rs`
 
 ### `vision_node`
 

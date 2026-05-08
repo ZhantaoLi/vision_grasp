@@ -106,7 +106,7 @@ src/vision_grasp/
 
 职责：
 
-- 在仿真模式下生成灰底图像和 4 个彩色方块
+- 在仿真模式下根据参数生成灰底图像和彩色方块
 - 在真机模式下读取 OpenCV 摄像头
 - 发布相机内参和 RViz marker
 
@@ -387,6 +387,7 @@ joint8 = +W / 2
 - launch 参数链已闭合
 - README / LICENSE / CHANGELOG 已补齐
 - 包级单测和 smoke test 已建立
+- 仿真场景已从代码硬编码改为 `params.yaml` 参数驱动
 
 仍然保留为原型实现的部分：
 

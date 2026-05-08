@@ -9,6 +9,13 @@ camera_node:
     cam_pos_x: 0.15       # 相机在基座系中的位置 (m)
     cam_pos_y: 0.0
     cam_pos_z: 0.5
+    block_names: ['red_block', 'green_block', 'blue_block', 'yellow_block']
+    block_xs: [0.30, 0.00, 0.35, 0.05]
+    block_ys: [0.15, -0.18, -0.12, 0.20]
+    block_sizes: [0.035, 0.035, 0.030, 0.032]
+    block_color_bs: [0, 0, 200, 0]
+    block_color_gs: [0, 180, 100, 200]
+    block_color_rs: [200, 0, 0, 220]
 
 vision_node:
   ros__parameters:
