@@ -212,7 +212,7 @@
         <text x="868" y="392" fill="#fb7185" font-size="12">/grasp_marker</text>
 
         <line x1="854" y1="258" x2="612" y2="490" stroke="#64748b" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#arrow-slate)"></line>
-        <text x="690" y="408" fill="#64748b" font-size="12">uses ik_utils</text>
+        <text x="666" y="408" fill="#64748b" font-size="12">uses ik_utils + trajectory_support</text>
 
         <g>
           <rect x="48" y="96" width="192" height="162" rx="18" fill="#062533" stroke="#22d3ee" stroke-width="2"></rect>
@@ -281,11 +281,11 @@
 
         <g>
           <rect x="328" y="490" width="284" height="134" rx="18" fill="#131d2f" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8"></rect>
-          <text x="352" y="520" fill="#94a3b8" font-size="17" font-weight="700">ik_utils.py</text>
-          <text x="352" y="544" fill="#e2e8f0" font-size="13">Shared math helpers used by trajectory_node</text>
-          <text x="352" y="572" fill="#cbd5e1" font-size="12">• _parse_urdf_joints • _find_chain</text>
-          <text x="352" y="590" fill="#cbd5e1" font-size="12">• _fk • _fk_all_links • _ik_position</text>
-          <text x="352" y="608" fill="#94a3b8" font-size="12">Current chain target: base_link → link6</text>
+          <text x="352" y="520" fill="#94a3b8" font-size="17" font-weight="700">ik_utils.py + trajectory_support.py</text>
+          <text x="352" y="544" fill="#e2e8f0" font-size="13">Shared FK/IK math plus pure trajectory helpers</text>
+          <text x="352" y="572" fill="#cbd5e1" font-size="12">• _parse_urdf_joints • _find_chain • _fk • _ik_position</text>
+          <text x="352" y="590" fill="#cbd5e1" font-size="12">• next_state • interpolate_positions • motion duration</text>
+          <text x="352" y="608" fill="#94a3b8" font-size="12">Current chain target: base_link → link6, behavior unchanged</text>
         </g>
 
         <g>

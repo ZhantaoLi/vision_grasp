@@ -34,6 +34,7 @@ vision_grasp/
 │   ├── arm_driver_node.py
 │   ├── camera_node.py
 │   ├── ik_utils.py
+│   ├── trajectory_support.py
 │   ├── tf_transformer_node.py
 │   ├── trajectory_node.py
 │   └── vision_node.py

@@ -65,6 +65,7 @@ src/vision_grasp/
     ├── arm_driver_node.py
     ├── camera_node.py
     ├── ik_utils.py
+    ├── trajectory_support.py
     ├── tf_transformer_node.py
     ├── trajectory_node.py
     └── vision_node.py
@@ -187,6 +188,14 @@ src/vision_grasp/
 - 计算 FK
 - 计算多关节链末端位置 IK
 - 提供碰地检查需要的链路 z 坐标计算
+
+### `trajectory_support.py`
+
+职责：
+
+- 保存抓取状态常量
+- 保存夹爪打开/安全闭合常量
+- 提供状态迁移、线性插值、运动时长计算、步长限制和日志格式化等纯函数
 
 ## Data Flow
 
@@ -362,6 +371,10 @@ joint8 = +W / 2
 - `test_tf_transformer_node.py`
   - 检查中心像素投影结果
   - 检查 CameraInfo 对内参更新
+- `test_trajectory_support.py`
+  - 检查夹爪闭合符号
+  - 检查状态机迁移
+  - 检查插值、步长限制和时长计算
 - `test_pipeline_launch.py`
   - smoke test
   - 验证整条仿真管线关键节点能够拉起

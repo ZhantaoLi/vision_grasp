@@ -21,28 +21,27 @@ from visualization_msgs.msg import Marker
 
 from .ik_utils import (_fk, _fk_all_links, _ik_position,
                        _parse_urdf_joints, _find_chain)
-
-
-# ---------- 状态机常量 ----------
-
-ST_IDLE = 0
-ST_OPENING = 1
-ST_APPROACH = 2
-ST_DESCENDING = 3
-ST_CLOSING = 4
-ST_LIFTING = 5
-ST_RETRACTING = 6
-
-GRIPPER7_OPEN = -0.06   # joint7 axis=-1, 负值=张开
-GRIPPER8_OPEN = 0.06    # joint8 axis=+1, 正值=张开
-# joint7 沿 -X 移动, joint8 沿 +X 移动 (link6 frame)
-# 全闭 (pos=0) 时手指刚好接触; 全开 (7=-0.06, 8=+0.06) 时间距 0.12m
-GRIPPER_CLOSE_SAFE7 = -0.0025   # 无 block 宽度时: joint7 略正 → 手指刚好接触
-GRIPPER_CLOSE_SAFE8 = 0.0025  # 无 block 宽度时: joint8 略负 → 手指刚好接触
-
-# link6→link7/link8 的偏移 (沿 link6 z 轴 0.135m)
-# 当 link6 z 轴朝下时，夹爪会延伸到目标下方
-GRIPPER_OFFSET_Z = 0.13503
+from .trajectory_support import (
+    GRIPPER7_OPEN,
+    GRIPPER8_OPEN,
+    GRIPPER_CLOSE_SAFE7,
+    GRIPPER_CLOSE_SAFE8,
+    GRIPPER_OFFSET_Z,
+    ST_APPROACH,
+    ST_CLOSING,
+    ST_DESCENDING,
+    ST_IDLE,
+    ST_LIFTING,
+    ST_OPENING,
+    ST_RETRACTING,
+    compute_gripper_close_positions,
+    compute_motion_duration,
+    format_joint_angles,
+    interpolate_positions,
+    limit_correction_step,
+    next_state,
+    state_log_message,
+)
 
 
 class TrajectoryNode(Node):
@@ -206,8 +205,9 @@ class TrajectoryNode(Node):
         # 根据 block 宽度计算夹爪闭合位置
         # joint7 沿 -X, joint8 沿 +X: 需要相反符号才能从两侧夹紧
         block_w = msg.pose.orientation.x if msg.pose.orientation.x > 0 else 0.035
-        self._gripper_close7 = -block_w / 2.0    # joint7 正值 → finger7 到 -X 侧
-        self._gripper_close8 = block_w / 2.0   # joint8 负值 → finger8 到 +X 侧
+        self._gripper_close7, self._gripper_close8 = (
+            compute_gripper_close_positions(block_w)
+        )
         self.get_logger().info(
             f'block 宽度 {block_w:.3f}m → 夹爪 j7={self._gripper_close7:+.4f}m, '
             f'j8={self._gripper_close8:+.4f}m')
@@ -261,11 +261,7 @@ class TrajectoryNode(Node):
                 q_grasp = q_try
                 break
             # 阻尼修正: 每次只修正部分误差，限制最大步长避免振荡
-            step = 0.6 * err
-            step_norm = np.linalg.norm(step)
-            if step_norm > 0.03:
-                step = step * 0.03 / step_norm
-            grasp_target = grasp_target + step
+            grasp_target = grasp_target + limit_correction_step(err)
         if q_grasp is None:
             if best_q is not None and best_err < 0.02:
                 q_grasp = best_q
@@ -332,13 +328,13 @@ class TrajectoryNode(Node):
         self._home_joints = list(q_home) + [gc7, gc8]
 
         self.get_logger().info(
-            f'接近关节: {[f"{math.degrees(a):.0f}°" for a in q_approach]}')
+            f'接近关节: {format_joint_angles(q_approach)}')
         self.get_logger().info(
-            f'抓取关节: {[f"{math.degrees(a):.0f}°" for a in q_grasp]}')
+            f'抓取关节: {format_joint_angles(q_grasp)}')
         self.get_logger().info(
-            f'抬升关节: {[f"{math.degrees(a):.0f}°" for a in q_lift]}')
+            f'抬升关节: {format_joint_angles(q_lift)}')
         self.get_logger().info(
-            f'归位关节: {[f"{math.degrees(a):.0f}°" for a in q_home]}')
+            f'归位关节: {format_joint_angles(q_home)}')
 
         # 开始状态机: 张开夹爪
         self._enter_state(ST_OPENING)
@@ -347,34 +343,31 @@ class TrajectoryNode(Node):
 
     def _enter_state(self, state):
         self._state = state
+        self.get_logger().info(
+            state_log_message(state, self._gripper_close7, self._gripper_close8)
+        )
 
         if state == ST_OPENING:
-            self.get_logger().info('[1/7] 张开夹爪')
             self._set_arm_goal(self._current_pos, GRIPPER7_OPEN, GRIPPER8_OPEN)
 
         elif state == ST_APPROACH:
-            self.get_logger().info('[2/7] 移到目标上方')
             self._set_arm_goal(self._approach_joints)
 
         elif state == ST_DESCENDING:
-            self.get_logger().info('[3/7] 下降到目标')
             self._set_arm_goal(self._grasp_joints)
 
         elif state == ST_CLOSING:
-            gc7, gc8 = self._gripper_close7, self._gripper_close8
-            self.get_logger().info(f'[4/7] 闭合夹爪 (j7={gc7:+.4f}m, j8={gc8:+.4f}m)')
-            self._set_arm_goal(self._current_pos, gc7, gc8)
+            self._set_arm_goal(
+                self._current_pos, self._gripper_close7, self._gripper_close8
+            )
 
         elif state == ST_LIFTING:
-            self.get_logger().info('[5/7] 抬升机械臂')
             self._set_arm_goal(self._lift_joints)
 
         elif state == ST_RETRACTING:
-            self.get_logger().info('[6/7] 归位到安全高度')
             self._set_arm_goal(self._home_joints)
 
         elif state == ST_IDLE:
-            self.get_logger().info('[7/7] 抓取完成，等待新目标')
             self._grasp_joints = None
 
     def _set_arm_goal(self, goal, gripper7=None, gripper8=None):
@@ -393,11 +386,13 @@ class TrajectoryNode(Node):
         self._start_pos = self._start_pos[:len(self._goal_pos)]
 
         # 根据关节速度限制计算实际运动时长
-        max_change = max(abs(g - s) for s, g in
-                         zip(self._start_pos, self._goal_pos))
-        vel_duration = max_change / self.max_vel if self.max_vel > 0 else 0
-        self._actual_duration = max(self.move_duration, vel_duration,
-                                    self._tick_period)
+        self._actual_duration = compute_motion_duration(
+            start_pos=self._start_pos,
+            goal_pos=self._goal_pos,
+            move_duration=self.move_duration,
+            max_vel=self.max_vel,
+            tick_period=self._tick_period,
+        )
 
         self._moving = True
         self._start_time = self.get_clock().now()
@@ -411,7 +406,7 @@ class TrajectoryNode(Node):
         elapsed = (self.get_clock().now() - self._start_time).nanoseconds * 1e-9
         t = min(elapsed / self._actual_duration, 1.0)
 
-        pos = [s + (g - s) * t for s, g in zip(self._start_pos, self._goal_pos)]
+        pos = interpolate_positions(self._start_pos, self._goal_pos, t)
         self._current_pos = list(pos)
 
         js = JointState()
@@ -424,19 +419,7 @@ class TrajectoryNode(Node):
             self._moving = False
             self.get_logger().info(
                 f'阶段完成 (state={self._state}), t={t:.2f}')
-            # 状态转换
-            if self._state == ST_OPENING:
-                self._enter_state(ST_APPROACH)
-            elif self._state == ST_APPROACH:
-                self._enter_state(ST_DESCENDING)
-            elif self._state == ST_DESCENDING:
-                self._enter_state(ST_CLOSING)
-            elif self._state == ST_CLOSING:
-                self._enter_state(ST_LIFTING)
-            elif self._state == ST_LIFTING:
-                self._enter_state(ST_RETRACTING)
-            elif self._state == ST_RETRACTING:
-                self._enter_state(ST_IDLE)
+            self._enter_state(next_state(self._state))
 
 
 def main(args=None):
