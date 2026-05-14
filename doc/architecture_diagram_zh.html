@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>vision_grasp Architecture</title>
+  <title>vision_grasp 架构图</title>
   <style>
     :root {
       --bg: #020617;
@@ -23,7 +23,7 @@
 
     body {
       color: var(--text);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background:
         linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
         linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
@@ -93,7 +93,7 @@
       padding: 20px;
     }
 
-    .card h2 { font-size: 13px; color: var(--cyan); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+    .card h2 { font-size: 13px; color: var(--cyan); letter-spacing: 0.06em; margin-bottom: 14px; }
     .card ul { padding-left: 16px; color: var(--muted); font-size: 13px; line-height: 1.8; }
     .card code { color: var(--text); font-family: "JetBrains Mono", monospace; font-size: 12px; background: rgba(148,163,184,0.1); padding: 1px 5px; border-radius: 4px; }
 
@@ -118,29 +118,26 @@
 
     <!-- ───────────── Header ───────────── -->
     <header class="header">
-      <div class="eyebrow"><span class="dot"></span> vision_grasp / architecture</div>
-      <h1>ROS 2 Visual Grasping Pipeline</h1>
+      <div class="eyebrow"><span class="dot"></span> vision_grasp / 架构总览</div>
+      <h1>ROS 2 视觉抓取流水线</h1>
       <p class="subtitle">
-        Single-package pipeline for Piper arm: simulated or real camera capture, HSV color-based
-        detection, pixel-to-base coordinate transform, IK-driven trajectory planning with a grasp
-        state machine, and optional serial actuation. Simulation-first; all parameters live in
-        <code>config/params.yaml</code>.
+        面向 Piper 机械臂的单包流水线：仿真或真实相机采集、基于 HSV 颜色分割的目标检测、
+        像素到基座坐标变换、IK 驱动的轨迹规划（含抓取状态机）、以及可选的串口驱动执行。
+        仿真优先设计；所有参数集中在 <code>config/params.yaml</code> 中。
       </p>
     </header>
 
     <!-- ───────────── SVG Diagram ───────────── -->
     <div class="diagram-wrap">
       <svg viewBox="0 0 1120 620" xmlns="http://www.w3.org/2000/svg" role="img"
-           aria-label="vision_grasp runtime architecture">
+           aria-label="vision_grasp 运行时架构图">
 
         <defs>
-          <!-- Arrow markers -->
           <marker id="a-cyan"   markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#22d3ee"/></marker>
           <marker id="a-green"  markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#34d399"/></marker>
           <marker id="a-amber"  markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#f59e0b"/></marker>
           <marker id="a-rose"   markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#fb7185"/></marker>
           <marker id="a-slate"  markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#64748b"/></marker>
-          <!-- Glow filter -->
           <filter id="glow"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
@@ -149,11 +146,11 @@
 
         <!-- Flow label -->
         <text x="40" y="36" fill="#475569" font-size="11" font-family="monospace" letter-spacing="0.08em">
-          IMAGE → DETECT → TRANSFORM → PLAN → ACTUATE
+          图像采集 → 目标检测 → 坐标变换 → 轨迹规划 → 执行驱动
         </text>
 
         <!-- ══════════════════════════════════════════════
-             ROW 1 — Core pipeline nodes (y: 60–240)
+             ROW 1 — 核心流水线节点 (y: 60–240)
              ══════════════════════════════════════════════ -->
 
         <!-- camera_node -->
@@ -161,12 +158,12 @@
           <rect x="30" y="60" width="180" height="170" rx="16" fill="#042f2e" stroke="#22d3ee" stroke-width="1.5"/>
           <rect x="30" y="60" width="180" height="36" rx="16" fill="#0e4a47"/>
           <text x="120" y="84" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="700">camera_node</text>
-          <text x="48" y="114" fill="#94a3b8" font-size="12">Simulated / real camera</text>
-          <text x="48" y="146" fill="#64748b" font-size="11">publishes</text>
+          <text x="48" y="114" fill="#94a3b8" font-size="12">仿真 / 真实相机</text>
+          <text x="48" y="146" fill="#64748b" font-size="11">发布</text>
           <text x="48" y="164" fill="#cbd5e1" font-size="11.5">/image_raw</text>
           <text x="48" y="180" fill="#cbd5e1" font-size="11.5">/camera_info</text>
           <text x="48" y="196" fill="#cbd5e1" font-size="11.5">/block_markers</text>
-          <text x="48" y="218" fill="#64748b" font-size="11">mode: sim_color | webcam</text>
+          <text x="48" y="218" fill="#64748b" font-size="11">模式: sim_color | webcam</text>
         </g>
 
         <!-- vision_node -->
@@ -174,10 +171,10 @@
           <rect x="248" y="60" width="170" height="170" rx="16" fill="#052e16" stroke="#34d399" stroke-width="1.5"/>
           <rect x="248" y="60" width="170" height="36" rx="16" fill="#14532d"/>
           <text x="333" y="84" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">vision_node</text>
-          <text x="266" y="114" fill="#94a3b8" font-size="12">HSV color segmentation</text>
-          <text x="266" y="146" fill="#64748b" font-size="11">consumes</text>
+          <text x="266" y="114" fill="#94a3b8" font-size="12">HSV 颜色分割检测</text>
+          <text x="266" y="146" fill="#64748b" font-size="11">订阅</text>
           <text x="266" y="164" fill="#cbd5e1" font-size="11.5">/image_raw</text>
-          <text x="266" y="188" fill="#64748b" font-size="11">publishes</text>
+          <text x="266" y="188" fill="#64748b" font-size="11">发布</text>
           <text x="266" y="206" fill="#cbd5e1" font-size="11.5">/detected_objects</text>
           <text x="266" y="222" fill="#cbd5e1" font-size="11.5">/debug_image</text>
         </g>
@@ -187,11 +184,11 @@
           <rect x="456" y="60" width="196" height="170" rx="16" fill="#3b2506" stroke="#f59e0b" stroke-width="1.5"/>
           <rect x="456" y="60" width="196" height="36" rx="16" fill="#5c3a0a"/>
           <text x="554" y="84" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="700">tf_transformer_node</text>
-          <text x="474" y="114" fill="#94a3b8" font-size="12">Pixel ray → base-plane intersect</text>
-          <text x="474" y="146" fill="#64748b" font-size="11">consumes</text>
+          <text x="474" y="114" fill="#94a3b8" font-size="12">像素射线 → 基座平面交点</text>
+          <text x="474" y="146" fill="#64748b" font-size="11">订阅</text>
           <text x="474" y="164" fill="#cbd5e1" font-size="11.5">/detected_objects</text>
           <text x="474" y="180" fill="#cbd5e1" font-size="11.5">/camera_info</text>
-          <text x="474" y="202" fill="#64748b" font-size="11">publishes</text>
+          <text x="474" y="202" fill="#64748b" font-size="11">发布</text>
           <text x="474" y="220" fill="#cbd5e1" font-size="11.5">/grasp_target</text>
         </g>
 
@@ -200,10 +197,10 @@
           <rect x="690" y="60" width="200" height="170" rx="16" fill="#3b0a1a" stroke="#fb7185" stroke-width="1.5"/>
           <rect x="690" y="60" width="200" height="36" rx="16" fill="#5c1027"/>
           <text x="790" y="84" text-anchor="middle" fill="#fb7185" font-size="14" font-weight="700">trajectory_node</text>
-          <text x="708" y="114" fill="#94a3b8" font-size="12">IK + grasp state machine</text>
-          <text x="708" y="146" fill="#64748b" font-size="11">consumes</text>
+          <text x="708" y="114" fill="#94a3b8" font-size="12">IK 求解 + 抓取状态机</text>
+          <text x="708" y="146" fill="#64748b" font-size="11">订阅</text>
           <text x="708" y="164" fill="#cbd5e1" font-size="11.5">/grasp_target</text>
-          <text x="708" y="188" fill="#64748b" font-size="11">publishes</text>
+          <text x="708" y="188" fill="#64748b" font-size="11">发布</text>
           <text x="708" y="206" fill="#cbd5e1" font-size="11.5">/joint_states</text>
           <text x="708" y="222" fill="#cbd5e1" font-size="11.5">/grasp_marker</text>
         </g>
@@ -213,16 +210,16 @@
           <rect x="928" y="60" width="162" height="170" rx="16" fill="#1e0a30" stroke="#a78bfa" stroke-width="1.5"/>
           <rect x="928" y="60" width="162" height="36" rx="16" fill="#2e1048"/>
           <text x="1009" y="84" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">arm_driver_node</text>
-          <text x="946" y="114" fill="#94a3b8" font-size="12">Serial / sim actuation</text>
-          <text x="946" y="146" fill="#64748b" font-size="11">consumes</text>
+          <text x="946" y="114" fill="#94a3b8" font-size="12">串口 / 仿真驱动</text>
+          <text x="946" y="146" fill="#64748b" font-size="11">订阅</text>
           <text x="946" y="164" fill="#cbd5e1" font-size="11.5">/joint_states</text>
-          <text x="946" y="190" fill="#64748b" font-size="11">modes</text>
-          <text x="946" y="208" fill="#cbd5e1" font-size="11.5">sim_idle</text>
-          <text x="946" y="224" fill="#cbd5e1" font-size="11.5">hw_serial</text>
+          <text x="946" y="190" fill="#64748b" font-size="11">运行模式</text>
+          <text x="946" y="208" fill="#cbd5e1" font-size="11.5">sim_idle（仿真）</text>
+          <text x="946" y="224" fill="#cbd5e1" font-size="11.5">hw_serial（实机）</text>
         </g>
 
         <!-- ══════════════════════════════════════════════
-             Arrows between pipeline nodes (top row)
+             流水线节点间箭头
              ══════════════════════════════════════════════ -->
 
         <!-- camera → vision: /image_raw -->
@@ -245,11 +242,11 @@
         <line x1="890" y1="145" x2="928" y2="145" stroke="#fb7185" stroke-width="2.5" marker-end="url(#a-rose)" filter="url(#glow)"/>
         <text x="894" y="138" fill="#fb7185" font-size="10" font-family="monospace">/joint_states</text>
 
-        <!-- trajectory → driver: /joint_states (dashed duplicate visual) -->
+        <!-- trajectory → driver: dashed -->
         <line x1="890" y1="185" x2="928" y2="185" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#a-rose)" opacity="0.4"/>
 
         <!-- ══════════════════════════════════════════════
-             ROW 2 — Infrastructure (y: 280–420)
+             ROW 2 — 基础设施 (y: 280–420)
              ══════════════════════════════════════════════ -->
 
         <!-- robot_state_publisher -->
@@ -257,9 +254,9 @@
           <rect x="30" y="280" width="260" height="120" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5"/>
           <rect x="30" y="280" width="260" height="36" rx="16" fill="#1e293b"/>
           <text x="160" y="304" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">robot_state_publisher</text>
-          <text x="48" y="334" fill="#94a3b8" font-size="12">Consumes /joint_states + URDF</text>
-          <text x="48" y="356" fill="#cbd5e1" font-size="11">Broadcasts TF tree for RViz</text>
-          <text x="48" y="378" fill="#cbd5e1" font-size="11">Input: piper.urdf (8 meshes)</text>
+          <text x="48" y="334" fill="#94a3b8" font-size="12">消费 /joint_states + URDF</text>
+          <text x="48" y="356" fill="#cbd5e1" font-size="11">广播 TF 树供 RViz 可视化</text>
+          <text x="48" y="378" fill="#cbd5e1" font-size="11">输入: piper.urdf（8 个 STL 网格）</text>
         </g>
 
         <!-- ik_utils + trajectory_support -->
@@ -267,30 +264,30 @@
           <rect x="320" y="280" width="310" height="120" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5" stroke-dasharray="8 6"/>
           <rect x="320" y="280" width="310" height="36" rx="16" fill="#1e293b"/>
           <text x="475" y="304" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">ik_utils + trajectory_support</text>
-          <text x="338" y="334" fill="#94a3b8" font-size="12">Shared math modules (not nodes)</text>
-          <text x="338" y="356" fill="#cbd5e1" font-size="11">URDF parser, FK, damped-least-squares IK</text>
-          <text x="338" y="378" fill="#cbd5e1" font-size="11">State constants, interpolation, gripper math</text>
-          <text x="338" y="394" fill="#64748b" font-size="10">Chain: base_link → link6</text>
+          <text x="338" y="334" fill="#94a3b8" font-size="12">共享数学模块（非节点）</text>
+          <text x="338" y="356" fill="#cbd5e1" font-size="11">URDF 解析、正运动学、阻尼最小二乘 IK</text>
+          <text x="338" y="378" fill="#cbd5e1" font-size="11">状态常量、关节插值、夹爪数学</text>
+          <text x="338" y="394" fill="#64748b" font-size="10">运动链: base_link → link6</text>
         </g>
 
         <!-- Params + URDF -->
         <g>
           <rect x="660" y="280" width="430" height="120" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5"/>
           <rect x="660" y="280" width="430" height="36" rx="16" fill="#1e293b"/>
-          <text x="875" y="304" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Piper Model + Configuration</text>
+          <text x="875" y="304" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Piper 模型 + 配置</text>
           <text x="678" y="334" fill="#94a3b8" font-size="12">description/piper.urdf + config/params.yaml</text>
-          <text x="678" y="356" fill="#cbd5e1" font-size="11">joint7: negative closure  |  joint8: positive closure</text>
-          <text x="678" y="378" fill="#cbd5e1" font-size="11">All runtime nodes receive params.yaml via launch</text>
-          <text x="678" y="394" fill="#64748b" font-size="10">8 STL meshes (base_link → link8)</text>
+          <text x="678" y="356" fill="#cbd5e1" font-size="11">joint7: 负值闭合  |  joint8: 正值闭合</text>
+          <text x="678" y="378" fill="#cbd5e1" font-size="11">所有运行时节点通过 launch 接收 params.yaml</text>
+          <text x="678" y="394" fill="#64748b" font-size="10">8 个 STL 网格 (base_link → link8)</text>
         </g>
 
-        <!-- Vertical dashed links from row 1 to row 2 -->
+        <!-- Row 1 → Row 2 vertical links -->
         <line x1="554" y1="230" x2="475" y2="280" stroke="#475569" stroke-width="1.2" stroke-dasharray="5 5" marker-end="url(#a-slate)" opacity="0.5"/>
         <line x1="790" y1="230" x2="475" y2="280" stroke="#475569" stroke-width="1.2" stroke-dasharray="5 5" marker-end="url(#a-slate)" opacity="0.5"/>
         <line x1="1009" y1="230" x2="875" y2="280" stroke="#475569" stroke-width="1.2" stroke-dasharray="5 5" marker-end="url(#a-slate)" opacity="0.5"/>
 
         <!-- ══════════════════════════════════════════════
-             ROW 3 — Visualization (y: 440–580)
+             ROW 3 — 可视化 / 测试 (y: 440–580)
              ══════════════════════════════════════════════ -->
 
         <!-- RViz2 -->
@@ -298,30 +295,30 @@
           <rect x="30" y="440" width="220" height="140" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5"/>
           <rect x="30" y="440" width="220" height="36" rx="16" fill="#1e293b"/>
           <text x="140" y="464" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">RViz2</text>
-          <text x="48" y="494" fill="#94a3b8" font-size="12">Optional visualization</text>
-          <text x="48" y="518" fill="#cbd5e1" font-size="11">Robot model via TF tree</text>
-          <text x="48" y="536" fill="#cbd5e1" font-size="11">/block_markers (detection overlay)</text>
-          <text x="48" y="554" fill="#cbd5e1" font-size="11">/grasp_marker (grasp pose)</text>
-          <text x="48" y="572" fill="#cbd5e1" font-size="11">/debug_image (HSV result)</text>
+          <text x="48" y="494" fill="#94a3b8" font-size="12">可选可视化层</text>
+          <text x="48" y="518" fill="#cbd5e1" font-size="11">机器人模型（TF 树）</text>
+          <text x="48" y="536" fill="#cbd5e1" font-size="11">/block_markers（检测叠加）</text>
+          <text x="48" y="554" fill="#cbd5e1" font-size="11">/grasp_marker（抓取位姿）</text>
+          <text x="48" y="572" fill="#cbd5e1" font-size="11">/debug_image（HSV 结果）</text>
         </g>
 
-        <!-- Launch files -->
+        <!-- Launch 文件 -->
         <g>
           <rect x="280" y="440" width="260" height="140" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5"/>
           <rect x="280" y="440" width="260" height="36" rx="16" fill="#1e293b"/>
-          <text x="410" y="464" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Launch Files</text>
-          <text x="298" y="494" fill="#94a3b8" font-size="12">pipeline.launch.py — headless</text>
-          <text x="298" y="514" fill="#cbd5e1" font-size="11">5 nodes + robot_state_publisher</text>
-          <text x="298" y="540" fill="#94a3b8" font-size="12">demo.launch.py — with RViz</text>
-          <text x="298" y="560" fill="#cbd5e1" font-size="11">Same + rviz2 + vision_grasp.rviz</text>
-          <text x="298" y="576" fill="#64748b" font-size="10">All nodes receive config/params.yaml</text>
+          <text x="410" y="464" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Launch 启动文件</text>
+          <text x="298" y="494" fill="#94a3b8" font-size="12">pipeline.launch.py — 无头模式</text>
+          <text x="298" y="514" fill="#cbd5e1" font-size="11">5 个节点 + robot_state_publisher</text>
+          <text x="298" y="540" fill="#94a3b8" font-size="12">demo.launch.py — 含 RViz</text>
+          <text x="298" y="560" fill="#cbd5e1" font-size="11">同上 + rviz2 + vision_grasp.rviz</text>
+          <text x="298" y="576" fill="#64748b" font-size="10">所有节点接收 config/params.yaml</text>
         </g>
 
-        <!-- Tests -->
+        <!-- 测试 -->
         <g>
           <rect x="570" y="440" width="520" height="140" rx="16" fill="#111827" stroke="#475569" stroke-width="1.5"/>
           <rect x="570" y="440" width="520" height="36" rx="16" fill="#1e293b"/>
-          <text x="830" y="464" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Test Suite (7 files)</text>
+          <text x="830" y="464" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">测试套件（7 个文件）</text>
           <text x="588" y="496" fill="#cbd5e1" font-size="11">test_ik_utils</text>
           <text x="728" y="496" fill="#cbd5e1" font-size="11">test_tf_transformer_node</text>
           <text x="908" y="496" fill="#cbd5e1" font-size="11">test_pipeline_launch</text>
@@ -329,10 +326,10 @@
           <text x="728" y="516" fill="#cbd5e1" font-size="11">test_metadata_and_launch</text>
           <text x="908" y="516" fill="#cbd5e1" font-size="11">test_camera_scene</text>
           <text x="588" y="536" fill="#cbd5e1" font-size="11">test_trajectory_support</text>
-          <text x="588" y="568" fill="#64748b" font-size="10">Coverage: IK helpers, TF math, metadata, pipeline smoke, gripper math</text>
+          <text x="588" y="568" fill="#64748b" font-size="10">覆盖: IK 辅助、TF 数学、元数据、流水线冒烟、夹爪数学</text>
         </g>
 
-        <!-- Vertical links from row 2 to row 3 -->
+        <!-- Row 2 → Row 3 vertical links -->
         <line x1="160" y1="400" x2="140" y2="440" stroke="#475569" stroke-width="1.2" stroke-dasharray="5 5" marker-end="url(#a-slate)" opacity="0.5"/>
         <line x1="160" y1="400" x2="410" y2="440" stroke="#475569" stroke-width="1.2" stroke-dasharray="5 5" marker-end="url(#a-slate)" opacity="0.5"/>
 
@@ -342,37 +339,37 @@
     <!-- ───────────── Info Cards ───────────── -->
     <div class="cards">
       <article class="card">
-        <h2>Runtime Summary</h2>
+        <h2>运行时概览</h2>
         <ul>
-          <li>Single ROS 2 package: 5 executable nodes + 2 shared modules.</li>
-          <li>Simulation-first: camera renders colored blocks, no hardware required.</li>
-          <li>All parameters centralized in <code>config/params.yaml</code>.</li>
+          <li>单个 ROS 2 包：5 个可执行节点 + 2 个共享模块。</li>
+          <li>仿真优先：相机渲染彩色色块，无需硬件。</li>
+          <li>所有参数集中在 <code>config/params.yaml</code>。</li>
         </ul>
       </article>
 
       <article class="card">
-        <h2>Data Flow</h2>
+        <h2>数据流</h2>
         <ul>
           <li><code>/image_raw</code> → <code>/detected_objects</code> → <code>/grasp_target</code> → <code>/joint_states</code></li>
-          <li>Pixel (u,v) → ray-plane intersect → IK solve → interpolated trajectory</li>
-          <li>Grasp state machine: IDLE → OPEN → APPROACH → DESCEND → CLOSE → LIFT → RETRACT</li>
+          <li>像素 (u,v) → 射线-平面求交 → IK 求解 → 关节插值轨迹</li>
+          <li>抓取状态机: IDLE → OPEN → APPROACH → DESCEND → CLOSE → LIFT → RETRACT</li>
         </ul>
       </article>
 
       <article class="card">
-        <h2>Gripper Convention</h2>
+        <h2>夹爪约定</h2>
         <ul>
-          <li>joint7 uses <strong>negative</strong> values for closure.</li>
-          <li>joint8 uses <strong>positive</strong> values for closure.</li>
-          <li>Meshes are symmetric across X=0 plane.</li>
-          <li>IK chain: <code>base_link → link6</code> (6-DOF).</li>
+          <li>joint7 使用<strong>负值</strong>闭合。</li>
+          <li>joint8 使用<strong>正值</strong>闭合。</li>
+          <li>网格关于 X=0 平面对称。</li>
+          <li>IK 运动链: <code>base_link → link6</code>（6 自由度）。</li>
         </ul>
       </article>
     </div>
 
     <p class="footer">
-      Source: <code>src/vision_grasp</code> v0.1.0 &middot;
-      Diagram style inspired by <a href="https://github.com/Cocoon-AI/architecture-diagram-generator" target="_blank">Cocoon-AI/architecture-diagram-generator</a>
+      源码: <code>src/vision_grasp</code> v0.1.0 &middot;
+      图表风格受 <a href="https://github.com/Cocoon-AI/architecture-diagram-generator" target="_blank">Cocoon-AI/architecture-diagram-generator</a> 启发
     </p>
   </div>
 </body>
